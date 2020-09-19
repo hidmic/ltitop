@@ -1,0 +1,49 @@
+# -*- coding: utf-8 -*-
+
+# ltitop - A toolkit to describe and optimize LTI systems topology
+# Copyright (C) 2021 Michel Hidalgo <hid.michel@gmail.com>
+#
+# This file is part of ltitop.
+#
+# ltitop is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ltitop is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
+
+import sympy
+
+from ltitop.arithmetic.error_bounded.number import Number as ErrorBoundedNumber
+from ltitop.arithmetic.symbolic import BaseNumber
+
+
+class ErrorBounded(BaseNumber):
+    __slots__ = ()
+
+    is_real = True
+    is_integer = True
+    is_rational = True
+    is_irrational = False
+
+    # Ensure error bounded operators take precedence
+    _op_priority = BaseNumber._op_priority * 40
+
+    def __new__(cls, value):
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, ErrorBoundedNumber):
+            return cls._new(ErrorBoundedNumber(
+                sympy.sympify(value.number), value.error_bounds
+            ))
+        return cls._new(ErrorBoundedNumber(sympy.sympify(value)))
+
+
+from sympy.core.sympify import converter
+converter[ErrorBoundedNumber] = ErrorBounded
