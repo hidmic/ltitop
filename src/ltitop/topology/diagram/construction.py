@@ -98,7 +98,7 @@ def as_diagram(block, input_=None, output=None, **data):
     diagram.graph['output'] = output
     return diagram
 
-def series_diagram(blocks, input_=None, output=None):
+def series_diagram(blocks, input_=None, output=None, simplify=True):
     if input_ and input_ == output:
         raise ValueError(f'{input_} used as input and output')
     nonredundant_blocks = []
@@ -109,10 +109,12 @@ def series_diagram(blocks, input_=None, output=None):
                 continue
             _, _, block = next(iter(block.edges(data='block')))
         model = block.model.to_zpk()
-        if model.gain == 0.:
-            return as_diagram(block, input_=input_, output=output)
-        if model.gain != 1. or len(model.poles) > 0 or len(model.zeros) > 0:
-            nonredundant_blocks.append(block)
+        if simplify:
+            if model.gain == 0.:
+                return as_diagram(block, input_=input_, output=output)
+            if model.gain == 1. and len(model.poles) == 0 and len(model.zeros) == 0:
+                continue
+        nonredundant_blocks.append(block)
     if not nonredundant_blocks:
         return as_diagram(blocks[0], input_=input_, output=output)
     diagram = nx.MultiDiGraph()
@@ -144,7 +146,7 @@ def series_diagram(blocks, input_=None, output=None):
     return diagram
 
 
-def parallel_diagram(blocks, input_=None, output=None):
+def parallel_diagram(blocks, input_=None, output=None, simplify=True):
     if input_ and input_ == output:
         raise ValueError(f'{input_} used as input and output')
     nonredundant_blocks = []
@@ -155,8 +157,9 @@ def parallel_diagram(blocks, input_=None, output=None):
                 continue
             _, _, block = next(iter(block.edges(data='block')))
         model = block.model.to_zpk()
-        if model.gain != 0.:
-            nonredundant_blocks.append(block)
+        if simplify and model.gain == 0.:
+            continue
+        nonredundant_blocks.append(block)
     if not nonredundant_blocks:
         return as_diagram(blocks[0], input_=input_, output=output)
     diagram = nx.MultiDiGraph()
