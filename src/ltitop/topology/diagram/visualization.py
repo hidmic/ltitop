@@ -25,7 +25,7 @@ import sys
 
 def pretty(diagram):
     agraph = pgv.AGraph(
-        directed=True, rankdir='LR', splines='polyline',)
+        directed=True, rankdir='TB', splines='polyline',)
     agraph.add_nodes_from(
         diagram.nodes, label='', xlabel=r'\N',
         shape='circle', color='black', style='filled',
@@ -37,7 +37,7 @@ def pretty(diagram):
             n, label=sympy.pretty(block, num_columns=sys.maxsize),
             fontname='courier', shape='box', style='solid'
         )
-        agraph.add_edge(u, n, style='solid', arrowsize=0.5, headport='w')
-        agraph.add_edge(n, v, style='solid', arrowsize=0.5, tailport='e')
+        agraph.add_edge(u, n, style='solid', arrowsize=0.5)
+        agraph.add_edge(n, v, style='solid', arrowsize=0.5)
     agraph.layout(prog='dot')
     return agraph
