@@ -158,6 +158,8 @@ def label_for(value):
             f'{name} = {label_for(value)}'
             for name, value in value.keywords.items()
         ))
+    if isinstance(value, methodcall):
+        return value.method_name
     return str(value)
 
 
