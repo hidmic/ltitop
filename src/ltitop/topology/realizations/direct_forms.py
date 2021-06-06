@@ -218,12 +218,18 @@ class DirectForm(Realization):
     def _pretty(self, printer):
         z = sympy.UnevaluatedExpr(sympy.Symbol('z'))
         k = getattr(self.parameters, 'k', 0)
-        num = printer._print(float(self.parameters.b[0]))
-        for i, c in enumerate(self.parameters.b[1:], start=1):
-            num += printer._print(np.ldexp(float(c), k) * z**-i)
+        num = None
+        for i, c in enumerate(self.parameters.b):
+            if c:
+                term = printer._print(
+                    np.ldexp(float(c), k) * z**-i)
+                num = num + term if num else term
+        if num is None:
+            num = 0
         den = printer._print(float(self.parameters.a[0]))
         for i, c in enumerate(self.parameters.a[1:], start=1):
-            den += printer._print(np.ldexp(float(c), k) * z**-i)
+            if c:
+                den += printer._print(np.ldexp(float(c), k) * z**-i)
         return printer._print(num) / printer._print(den)
 
 
