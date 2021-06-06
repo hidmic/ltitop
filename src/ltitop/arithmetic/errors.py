@@ -34,8 +34,8 @@ class UnderflowError(ArithmeticError):
     def margin(self):
         value = np.absolute(self.value)
         if isinstance(value, Interval):
-            value = value.upper_bound - value.lower_bound
-        return np.min(value / self.epsilon)
+            value = value.upper_bound
+        return 10. * np.log10(np.min(value) / self.epsilon)
 
 
 class OverflowError(ArithmeticError):
@@ -47,10 +47,8 @@ class OverflowError(ArithmeticError):
 
     @property
     def margin(self):
-        value = self.value
-        if not isinstance(value, Interval):
-            value = Interval(value)
-        return np.min(np.array([
-            self.limits.upper_bound - value.upper_bound,
-            value.lower_bound - self.limits.lower_bound
-        ]) / (self.limits.upper_bound - self.limits.lower_bound), axis=0)
+        value = np.absolute(self.value)
+        if isinstance(value, Interval):
+            value = value.upper_bound
+        limits = np.absolute(self.limits)
+        return 10. * np.log10(limits.upper_bound / np.max(value))
