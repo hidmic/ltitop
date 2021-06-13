@@ -22,6 +22,7 @@ import dataclasses
 import functools
 import pickle
 import random
+import multiprocessing
 
 import numpy as np
 np.set_printoptions(linewidth=1000)
@@ -50,8 +51,6 @@ from ltitop.arithmetic.fixed_point import fixed
 from ltitop.arithmetic.fixed_point.formats import Q
 
 from ltitop.algorithms.analysis import implementation_hardware
-
-import ltitop.common.functional as functional
 
 from ltitop.models.transforms import discretize
 from ltitop.models.transforms import lowpass_to_lowpass
@@ -83,6 +82,89 @@ class Criteria:
     size_of_memory : int = inf
 
 
+def evaluate(
+    implement, prototype, *,
+    input_range, input_noise,
+    input_noise_power_density,
+    psd, expected_response
+):
+    criteria = Criteria()
+
+    # Implement filter
+    try:
+        diagram = implement(prototype)
+    except OverflowError as e:
+        criteria.overflow_margin = float(np.min(e.margin))
+        return criteria
+    except UnderflowError as e:
+        criteria.underflow_margin = float(np.min(e.margin))
+        return criteria
+    except ValueError as e:
+        # simply unfeasible e.g. due to numerical errors
+        return None
+
+    # Evaluate filter stability
+    radii = spectral_radii(diagram)
+    criteria.stability_margin = inf
+    if radii:
+        max_spectral_radius = np.max(radii)
+        if max_spectral_radius != 0:
+            criteria.stability_margin = -np.log10(max_spectral_radius)
+        if criteria.stability_margin < 1e-5:
+            # Not enough margin to proceed
+            return criteria
+
+    # Compute variable and error bounds
+    try:
+        adiagram = analytic_diagram(diagram, input_range)
+    except OverflowError as e:
+        criteria.overflow_margin = float(np.min(e.margin))
+        return criteria
+    except UnderflowError as e:
+        criteria.underflow_margin = float(np.min(e.margin))
+        return criteria
+
+    # Assume zero margin
+    criteria.overflow_margin = 0
+    criteria.underflow_margin = 0
+
+    def power(signal_range):
+        # Assume uniform distribution
+        a = signal_range.lower_bound
+        b = signal_range.upper_bound
+        return (a**2 + a * b + b**2) / 3  # E(signal^2)
+
+    signal_power = power(output_range(adiagram, input_range))
+    if signal_power != 0.:
+        # Estimate SNR due to arithmetic 'noise'
+        arithmetic_noise_power = power(error_bounds(adiagram))
+        criteria.arithmetic_snr = 10. * np.log10(float(
+            signal_power / arithmetic_noise_power
+        )).item()  # force it to be an scalar
+
+        # Compute frequency response error
+        func = signal_processing_function(diagram)
+        output_noise = func(input_noise).T[0].astype(float)
+        _, output_noise_power_density = psd(output_noise)
+        response = 10 * np.log10(
+            output_noise_power_density /
+            input_noise_power_density
+            + 1/inf)  # ensure nonzero values
+        criteria.frequency_response_error = \
+            np.sqrt(np.mean((expected_response - response)**2))
+            # np.max(np.abs(expected_response - response))
+
+    # Summarize hardware
+    criteria.number_of_adders, \
+    criteria.number_of_multipliers, \
+    criteria.size_of_memory = np.sum([
+        implementation_hardware(block.algorithm)
+        for _, _, block in diagram.edges(data='block')
+    ], axis=0)
+    criteria.number_of_adders += diagram.number_of_edges() - 1
+
+    return criteria
+
 def main():
     random.seed(7)
     np.random.seed(7)
@@ -108,17 +190,18 @@ def main():
 
     # Use PSD output to white noise input PSD ratio as response
     window = signal.get_window('blackman', 256)
+    psd = functools.partial(
+        signal.welch, scaling='density', window=window, fs=fs)
     input_range = interval(lower_bound=-0.5, upper_bound=0.5)
     input_noise_power_density = 0.0005
     input_noise = np.random.normal(
         scale=np.sqrt(input_noise_power_density * fs / 2), size=512)
     assert np.max(input_noise) < ProcessingUnit.active().rinfo().max
-    assert np.min(input_noise) < ProcessingUnit.active().rinfo().min
+    assert np.min(input_noise) > ProcessingUnit.active().rinfo().min
     input_noise = np.array([fixed(n) for n in input_noise])
     _, outputs = model.output(input_noise.astype(float), t=None)
     output_noise = outputs.T[0]
-    freq, output_noise_power_density = signal.welch(
-        output_noise, fs, window=window)
+    freq, output_noise_power_density = psd(output_noise)
     expected_response = 10 * np.log10(
         output_noise_power_density /
         input_noise_power_density + 1/inf
@@ -129,7 +212,16 @@ def main():
 
     # Formulate GP problem
     toolbox = solvers.gp.formulate(
-        order=len(model.poles),
+        prototype,
+        transforms=[
+            functools.partial(lowpass_to_lowpass, wo=wp),
+            functools.partial(discretize, dt=1/fs)],
+        evaluate=functools.partial(
+            evaluate,
+            input_range=input_range, input_noise=input_noise,
+            input_noise_power_density=input_noise_power_density,
+            psd=psd, expected_response=expected_response
+        ),
         weights=(1., 1., 1., 1., -1., -1., -1., -1.),
         forms=[DirectFormI, DirectFormII],
         variants=range(1000),
@@ -137,112 +229,26 @@ def main():
         tol=1e-6
     )
 
-    toolbox.pfunc.decorate(
-        'realize',  # model from prototype
-        functional.atransform(
-            functools.partial(lowpass_to_lowpass, wo=wp),
-            functools.partial(discretize, dt=1/fs)
-        )
-    )
-
-    def evaluate(code):
-        criteria = Criteria()
-
-        implement = toolbox.compile(code)
-
-        # Implement filter
-        try:
-            diagram = implement(prototype)
-        except OverflowError as e:
-            criteria.overflow_margin = float(np.min(e.margin))
-            return criteria
-        except UnderflowError as e:
-            criteria.underflow_margin = float(np.min(e.margin))
-            return criteria
-        except ValueError as e:
-            # simply unfeasible e.g. due to numerical errors
-            return None
-
-        # Evaluate filter stability
-        radii = spectral_radii(diagram)
-        criteria.stability_margin = inf
-        if radii:
-            max_spectral_radius = np.max(radii)
-            if max_spectral_radius != 0:
-                criteria.stability_margin = -np.log10(max_spectral_radius)
-            if criteria.stability_margin < 1e-5:
-                # Not enough margin to proceed
-                return criteria
-
-        # Compute variable and error bounds
-        try:
-            adiagram = analytic_diagram(diagram, input_range)
-        except OverflowError as e:
-            criteria.overflow_margin = float(np.min(e.margin))
-            return criteria
-        except UnderflowError as e:
-            criteria.underflow_margin = float(np.min(e.margin))
-            return criteria
-
-        # Assume zero margin
-        criteria.overflow_margin = 0
-        criteria.underflow_margin = 0
-
-        def power(signal_range):
-            # Assume uniform distribution
-            a = signal_range.lower_bound
-            b = signal_range.upper_bound
-            return (a**2 + a * b + b**2) / 3  # E(signal^2)
-
-        signal_power = power(output_range(adiagram, input_range))
-        if signal_power != 0.:
-            # Estimate SNR due to arithmetic 'noise'
-            arithmetic_noise_power = power(error_bounds(adiagram))
-            criteria.arithmetic_snr = 10. * np.log10(float(
-                signal_power / arithmetic_noise_power
-            )).item()  # force it to be an scalar
-
-            # Compute frequency response error
-            func = signal_processing_function(diagram)
-            output_noise = func(input_noise).T[0]
-            _, output_noise_power_density = signal.welch(
-                output_noise.astype(float), fs,
-                window=window)
-            response = 10 * np.log10(
-                output_noise_power_density /
-                input_noise_power_density
-                + 1/inf)  # ensure nonzero values
-            criteria.frequency_response_error = \
-                np.sqrt(np.mean((expected_response - response)**2))
-                # np.max(np.abs(expected_response - response))
-
-        # Summarize hardware
-        criteria.number_of_adders, \
-        criteria.number_of_multipliers, \
-        criteria.size_of_memory = np.sum([
-            implementation_hardware(block.algorithm)
-            for _, _, block in diagram.edges(data='block')
-        ], axis=0)
-        criteria.number_of_adders += diagram.number_of_edges() - 1
-
-        return criteria
-
-    toolbox.register('evaluate', evaluate)
-
     # Solve GP problem
-    only_visualize = True
+    only_visualize = False
     if not only_visualize:
-        stats = deap.tools.Statistics(
-            key=lambda code: code.fitness.values)
-        stats.register('avg', np.mean, axis=0)
-        stats.register('med', np.median, axis=0)
-        stats.register('min', np.min, axis=0)
-        pareto_front = deap.tools.ParetoFront()
-        population = toolbox.population(256)
-        population, logbook = solvers.gp.nsga2(
-            population, toolbox, mu=256, lambda_=64,
-            cxpb=0.5, mutpb=0.2, ngen=25, stats=stats,
-            halloffame=pareto_front, verbose=True)
+        with multiprocessing.Pool() as pool:
+            try:
+                toolbox.register('map', pool.map)
+
+                stats = deap.tools.Statistics(
+                    key=lambda code: code.fitness.values)
+                stats.register('avg', np.mean, axis=0)
+                stats.register('med', np.median, axis=0)
+                stats.register('min', np.min, axis=0)
+                pareto_front = deap.tools.ParetoFront()
+                population = toolbox.population(512)
+                population, logbook = solvers.gp.nsga2(
+                    population, toolbox, mu=512, lambda_=128,
+                    cxpb=0.5, mutpb=0.05, ngen=25, stats=stats,
+                    halloffame=pareto_front, verbose=True)
+            finally:
+                toolbox.register('map', map)
 
         with open('front.pkl', 'wb') as f:
             pickle.dump(pareto_front, f)
@@ -372,18 +378,14 @@ def main():
     pretty(optimized_implementation_b).draw('optimized_b.png')
 
     func = signal_processing_function(optimized_implementation_a)
-    output_noise = func(input_noise).T[0]
-    _, output_noise_power_density = signal.welch(
-        output_noise.astype(float), fs,
-        window=window, scaling='density')
+    output_noise = func(input_noise).T[0].astype(float)
+    _, output_noise_power_density = psd(output_noise)
     optimized_implementation_a_response = \
         10 * np.log10(output_noise_power_density / input_noise_power_density + 1/inf)
 
     func = signal_processing_function(optimized_implementation_b)
-    output_noise = func(input_noise).T[0]
-    _, output_noise_power_density = signal.welch(
-        output_noise.astype(float), fs,
-        window=window, scaling='density')
+    output_noise = func(input_noise).T[0].astype(float)
+    _, output_noise_power_density = psd(output_noise)
     optimized_implementation_b_response = \
         10 * np.log10(output_noise_power_density / input_noise_power_density + 1/inf)
 
@@ -397,9 +399,8 @@ def main():
 
         pretty(biquad_cascade).draw('biquad.png')
         func = signal_processing_function(biquad_cascade)
-        output_noise = func(input_noise).T[0]
-        _, output_noise_power_density = signal.welch(
-            output_noise.astype(float), fs, window=window)
+        output_noise = func(input_noise).T[0].astype(float)
+        _, output_noise_power_density = psd(output_noise)
         biquad_cascade_response = \
             10 * np.log10(output_noise_power_density / input_noise_power_density + 1/inf)
 
