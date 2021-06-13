@@ -22,14 +22,14 @@ import functools
 
 from ltitop.common.helpers import astuple
 
-def atransform(*functions):
-    def _decorator(func):
-        @functools.wraps(func)
-        def _wrapper(*args, **kwargs):
-            args = functools.reduce(
-                lambda a, f: astuple(f(*a)),
-                functions, args
-            )
-            return func(*args, **kwargs)
-        return _wrapper
-    return _decorator
+class argtransform:
+    def __init__(self, func, *transforms):
+        self.func = func
+        self.transforms = transforms
+
+    def __call__(self, *args, **kwargs):
+        args = functools.reduce(
+            lambda a, f: astuple(f(*a)),
+            self.transforms, args
+        )
+        return self.func(*args, **kwargs)
