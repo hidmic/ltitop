@@ -40,6 +40,15 @@ def immutable_dataclass(cls=None, /, iterable=False, **kwargs):
         cls_dict['__slots__'] = field_names
         for field_name in field_names:
             cls_dict.pop(field_name, None)
+        def __getstate__(self):
+            return {
+                f.name: getattr(self, f.name)
+                for f in dataclasses.fields(self)}
+        cls_dict['__getstate__'] = __getstate__
+        def __setstate__(self, state):
+            for name, value in state.items():
+                object.__setattr__(self, name, value)
+        cls_dict['__setstate__'] = __setstate__
         if iterable and not hasattr(cls, '__iter__'):
             def __iter__(self):
                 for f in dataclasses.fields(self):
