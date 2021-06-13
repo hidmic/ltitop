@@ -38,6 +38,7 @@ import deap.tools
 import numpy as np
 import scipy.signal as signal
 
+from ltitop.common.functional import argtransform
 from ltitop.common.helpers import methodcall
 from ltitop.models.composites import parallel_decomposition
 from ltitop.models.composites import series_decomposition
@@ -46,8 +47,8 @@ from ltitop.topology.diagram.construction import parallel_diagram
 from ltitop.topology.diagram.construction import series_diagram
 
 
-def series(*operators, variant, tol):
-    def _implementation(model, **kwargs):
+def _series(*operators, variant, tol):
+    def __implementation(model, **kwargs):
         return series_diagram([
             operator(submodel) for operator, submodel in zip(
                 operators, series_decomposition(
@@ -55,11 +56,11 @@ def series(*operators, variant, tol):
                 )
             )
         ], **kwargs)
-    return _implementation
+    return __implementation
 
 
-def parallel(*operators, variant, tol):
-    def _implementation(model, **kwargs):
+def _parallel(*operators, variant, tol):
+    def __implementation(model, **kwargs):
         return parallel_diagram([
             operator(submodel) for operator, submodel in zip(
                 operators, parallel_decomposition(
@@ -67,11 +68,25 @@ def parallel(*operators, variant, tol):
                 )
             )
         ], **kwargs)
-    return _implementation
+    return __implementation
 
 
-def realize(model, *, form, **kwargs):
+def _realize(model, *, form, **kwargs):
     return as_diagram(form.from_model(model, **kwargs))
+
+
+def _evaluate(code, *, func, model, compiler):
+    fitness = func(compiler(code), model)
+    if dataclasses.is_dataclass(fitness):
+        fitness = dataclasses.astuple(fitness)
+    return fitness
+
+
+def _graph(code, pset):
+    nodes, edges, labels = deap.gp.graph(code)
+    labels = {i: label_for(pset.context[name])
+              for i, name in labels.items()}
+    return nodes, edges, labels
 
 
 class Code(deap.gp.PrimitiveTree):
@@ -92,12 +107,14 @@ class Code(deap.gp.PrimitiveTree):
             self.fitness = Code.Fitness(weights)
 
 
-
-def formulate(*, order, weights, forms, variants, dtype=float, tol=1e-16):
+def formulate(
+    prototype, *, transforms, evaluate, weights,
+    forms, variants, dtype=float, tol=1e-16
+):
     pfunc = deap.base.Toolbox()
-    pfunc.register('series', series)
-    pfunc.register('parallel', parallel)
-    pfunc.register('realize', realize)
+    pfunc.register('series', _series)
+    pfunc.register('parallel', _parallel)
+    pfunc.register('realize', argtransform(_realize, *transforms))
 
     pset = deap.gp.PrimitiveSet('factory', 0)
     for variant in variants:
@@ -120,22 +137,26 @@ def formulate(*, order, weights, forms, variants, dtype=float, tol=1e-16):
     toolbox = deap.base.Toolbox()
     toolbox.pset = pset
     toolbox.pfunc = pfunc
+    order = len(prototype.poles)
     toolbox.register(
         'code', deap.gp.genHalfAndHalf, pset=pset,
         min_=1, max_=max(math.ceil(math.log2(order)), 1))
     toolbox.register(
         'code_snippet', deap.gp.genFull,
         pset=pset, min_=0, max_=2)
-    toolbox.register('individual', lambda: Code(toolbox.code(), weights))
-    toolbox.register('population', deap.tools.initRepeat, list, toolbox.individual)
+    toolbox.register(
+        'individual', lambda: Code(toolbox.code(), weights))
+    toolbox.register(
+        'population', deap.tools.initRepeat, list, toolbox.individual)
     toolbox.register('compile', deap.gp.compile, pset=pset)
-
-    def _graph(code):
-        nodes, edges, labels = deap.gp.graph(code)
-        labels = {i: label_for(pset.context[name])
-                  for i, name in labels.items()}
-        return nodes, edges, labels
-    toolbox.register('graph', _graph)
+    toolbox.register(
+        'evaluate', functools.partial(
+            _evaluate,
+            func=evaluate, model=prototype,
+            compiler=toolbox.compile
+        )
+    )
+    toolbox.register('graph', _graph, pset=pset)
 
     order_limit = deap.gp.staticLimit(
         key=operator.attrgetter('height'),
@@ -183,8 +204,6 @@ def nsga2(population, toolbox, *, mu=None, lambda_=None,
             population.remove(ind)
             nunfeas += 1
             continue
-        if dataclasses.is_dataclass(fit):
-            fit = dataclasses.astuple(fit)
         ind.fitness.values = fit
 
     if halloffame is not None:
@@ -215,8 +234,6 @@ def nsga2(population, toolbox, *, mu=None, lambda_=None,
                 offspring.remove(ind)
                 nunfeas += 1
                 continue
-            if dataclasses.is_dataclass(fit):
-                fit = dataclasses.astuple(fit)
             ind.fitness.values = fit
 
         population = deap.tools.selNSGA2(population + offspring, mu, nd='log')
