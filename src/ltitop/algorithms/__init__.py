@@ -20,13 +20,8 @@
 
 import dataclasses
 import functools
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Iterable, Tuple, Union
 
-import numpy as np
 import sympy
 
 from ltitop.algorithms.statements import Statement
@@ -35,23 +30,25 @@ from ltitop.common.helpers import astuple
 
 # TODO(hidmic): replace all of this with sympy.codegen AST
 
+
 def subs(
     expressions: Union[sympy.Expr, Iterable[sympy.Expr]],
-    values: Union[Any, Iterable[Any]]
+    values: Union[Any, Iterable[Any]],
 ) -> Dict[sympy.Expr, sympy.Basic]:
     expressions = astuple(expressions)
     values = astuple(values)
     if len(expressions) != len(values):
-        raise ValueError(f'Mismatch between {expressions} and {values}')
+        raise ValueError(f"Mismatch between {expressions} and {values}")
     return {e: sympy.sympify(v) for e, v in zip(expressions, values)}
+
 
 @immutable_dataclass
 class Algorithm:
-    procedure: Tuple[Statement]
-    inputs: Tuple[sympy.Expr] = ()
-    states: Tuple[sympy.Expr] = ()
-    outputs: Tuple[sympy.Expr] = ()
-    parameters: Tuple[sympy.Expr] = ()
+    procedure: Tuple[Statement, ...]
+    inputs: Tuple[sympy.Expr, ...] = ()
+    states: Tuple[sympy.Expr, ...] = ()
+    outputs: Tuple[sympy.Expr, ...] = ()
+    parameters: Tuple[sympy.Expr, ...] = ()
 
     def __post_init__(self):
         for f in dataclasses.fields(self):
@@ -74,10 +71,15 @@ class Algorithm:
                 local_variables = [v for v in variables if expression.has(v)]
                 local_constants = [c for c in constants if expression.has(c)]
                 import ltitop.algorithms.expressions.arithmetic as arithmetic
-                func = functools.partial(sympy.lambdify(
-                    local_constants + arguments + local_variables,
-                    expression, modules=[arithmetic, 'numpy']
-                ), *[constants[c] for c in local_constants])
+
+                func = functools.partial(
+                    sympy.lambdify(
+                        local_constants + arguments + local_variables,
+                        expression,
+                        modules=[arithmetic, "numpy"],
+                    ),
+                    *[constants[c] for c in local_constants],
+                )
                 steps.append((var, func, local_variables))
                 if var not in self.states:
                     variables.add(var)
@@ -99,7 +101,7 @@ class Algorithm:
         if parameters is not None:
             scope.update(subs(self.parameters, parameters))
         if not scope:
-            raise ValueError('Scope is empty')
+            raise ValueError("Scope is empty")
         return scope
 
     def run(self, scope):
@@ -113,15 +115,20 @@ class Algorithm:
             yield statement.perform(scope)
 
     def collect(self, scope):
-        return (tuple(state.subs(scope.items()) for state in self.states),
-                tuple(output.subs(scope.items()) for output in self.outputs))
+        return (
+            tuple(state.subs(scope.items()) for state in self.states),
+            tuple(output.subs(scope.items()) for output in self.outputs),
+        )
 
     def __str__(self):
-        return '\n'.join([
-            'Algorithm:',
-            '  Inputs: {}'.format(', '.join(map(str, self.inputs))),
-            '  States: {}'.format(', '.join(map(str, self.states))),
-            '  Outputs: {}'.format(', '.join(map(str, self.outputs))),
-            '  Parameters: {}'.format(', '.join(map(str, self.parameters))),
-            '',
-        ] + [f'  {statement}' for statement in self.procedure])
+        return "\n".join(
+            [
+                "Algorithm:",
+                "  Inputs: {}".format(", ".join(map(str, self.inputs))),
+                "  States: {}".format(", ".join(map(str, self.states))),
+                "  Outputs: {}".format(", ".join(map(str, self.outputs))),
+                "  Parameters: {}".format(", ".join(map(str, self.parameters))),
+                "",
+            ]
+            + [f"  {statement}" for statement in self.procedure]
+        )

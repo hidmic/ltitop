@@ -24,8 +24,7 @@ from ltitop.arithmetic.interval import Interval
 
 
 class UnderflowError(ArithmeticError):
-
-    def __init__(self, message='', value=None, epsilon=None):
+    def __init__(self, message="", value=None, epsilon=None):
         super().__init__(message)
         self.value = value
         self.epsilon = epsilon
@@ -35,12 +34,11 @@ class UnderflowError(ArithmeticError):
         value = np.absolute(self.value)
         if isinstance(value, Interval):
             value = value.upper_bound
-        return 10. * np.log10(np.min(value) / self.epsilon)
+        return 10.0 * np.log10(np.min(value) / self.epsilon)
 
 
 class OverflowError(ArithmeticError):
-
-    def __init__(self, message='', value=None, limits=None):
+    def __init__(self, message="", value=None, limits=None):
         super().__init__(message)
         self.value = value
         self.limits = limits
@@ -51,4 +49,4 @@ class OverflowError(ArithmeticError):
         if isinstance(value, Interval):
             value = value.upper_bound
         limits = np.absolute(self.limits)
-        return 10. * np.log10(limits.upper_bound / np.max(value))
+        return 10.0 * np.log10(limits.upper_bound / np.max(value))

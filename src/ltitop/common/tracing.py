@@ -18,19 +18,19 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from abc import ABCMeta
 import contextlib
 import functools
 import types
+from abc import ABCMeta
 
 
 class Traceable(ABCMeta):
-
     @classmethod
     def wrap_init(cls, init):
         def __init__(self, *args, **kwargs):
             init(self, *args, **kwargs)
             self._traces = []
+
         return __init__
 
     @classmethod
@@ -41,6 +41,7 @@ class Traceable(ABCMeta):
             for trace in self._traces:
                 trace.append((decorator, ret, args, kwargs))
             return ret
+
         return decorator
 
     @classmethod
@@ -63,20 +64,20 @@ class Traceable(ABCMeta):
             finally:
                 self._traces = traces
 
-        return {'trace': trace, 'notrace': notrace}
+        return {"trace": trace, "notrace": notrace}
 
     def __new__(cls, name, bases, dct):
         changes = {}
         for name in dct:
-            if name.startswith('_'):
+            if name.startswith("_"):
                 continue
             if not isinstance(dct[name], types.FunctionType):
                 continue
             changes[name] = cls.wrap_method(dct[name])
         if any(changes):
             if not any(isinstance(base, cls) for base in bases):
-                init = base[0].__init__ if bases else object.__init__
-                dct['__init__'] = cls.wrap_init(dct.get('__init__', init))
+                init = bases[0].__init__ if bases else object.__init__
+                dct["__init__"] = cls.wrap_init(dct.get("__init__", init))
                 dct.update(cls.make_public_api())
             dct.update(changes)
         return super().__new__(cls, name, bases, dct)

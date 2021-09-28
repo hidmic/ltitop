@@ -18,21 +18,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import re
-import mpmath
 import functools
+import re
+
+import mpmath
 import numpy as np
 
-from ltitop.arithmetic.floating_point import mpfloat
-from ltitop.arithmetic.floating_point import mpmsb
-from ltitop.arithmetic.floating_point import mpquantize
-from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.rounding import floor
-from ltitop.arithmetic.rounding import ceil
-from ltitop.arithmetic.rounding import truncate
-from ltitop.arithmetic.modular import wraparound
+from ltitop.arithmetic.floating_point import mpfloat, mpmsb, mpquantize
 from ltitop.arithmetic.interval import interval
-from ltitop.common.memoization import memoize
+from ltitop.arithmetic.rounding import nearest_integer
 from ltitop.common.dataclasses import immutable_dataclass
 
 
@@ -42,8 +36,7 @@ class Format:
     lsb: int
     signed: bool = True
 
-    _qnotation_pattern = \
-        re.compile(r"^([su]?)Q([+-]?[0-9]+)\.([+-]?[0-9]+)$")
+    _qnotation_pattern = re.compile(r"^([su]?)Q([+-]?[0-9]+)\.([+-]?[0-9]+)$")
 
     @classmethod
     def from_qnotation(cls, notation):
@@ -51,23 +44,20 @@ class Format:
         if not match:
             raise ValueError("'{}' is not in Q notation".format(notation))
         signed, msb, lsb = match.groups()
-        signed = (signed != 'u')
+        signed = signed != "u"
         msb = int(msb) - (1 if signed else 0)
         lsb = -int(lsb)
         return cls(msb=msb, lsb=lsb, signed=signed)
 
-    _pnotation_pattern = \
-        re.compile(r"^([su]?)\(([+-]?[0-9]+),([+-]?[0-9]+)\)$")
+    _pnotation_pattern = re.compile(r"^([su]?)\(([+-]?[0-9]+),([+-]?[0-9]+)\)$")
 
     @classmethod
     def from_pnotation(cls, notation):
         match = cls._pnotation_pattern.match(notation)
         if not match:
-            raise ValueError(
-                "'{}' is not in parenthesis notation".format(notation)
-            )
+            raise ValueError("'{}' is not in parenthesis notation".format(notation))
         signed, msb, lsb = match.groups()
-        signed = (signed != 'u')
+        signed = signed != "u"
         msb = int(msb)
         lsb = int(lsb)
         return cls(msb=msb, lsb=lsb, signed=signed)
@@ -94,7 +84,7 @@ class Format:
         with mpmath.workprec(20 * wordlength):  # enough bits
             mpvalue = mpfloat(value)
             if not np.all(mpvalue >= 0) and not signed:
-                raise ValueError(f'Unsigned format cannot represent {value}')
+                raise ValueError(f"Unsigned format cannot represent {value}")
             # estimate MSB
             msb = np.max(mpmsb(mpvalue, signed=signed))
             if np.isneginf(msb):
@@ -103,17 +93,14 @@ class Format:
             # estimate LSB
             lsb = msb - wordlength + int(signed)
             # compute mantissa
-            mantissa = mpquantize(
-                mpvalue, nbits=-lsb,
-                rounding_method=rounding_method
-            )
+            mantissa = mpquantize(mpvalue, nbits=-lsb, rounding_method=rounding_method)
             # adjust MSB if limits were overpassed
             adjusted_msb = msb  # no adjustment
             upper_limit = 2 ** (wordlength - int(signed))
             if not np.all(mantissa < upper_limit):
                 adjusted_msb = msb + 1
             if np.all(mantissa < 0):
-                lower_limit = -2 ** (wordlength - 2)
+                lower_limit = -(2 ** (wordlength - 2))
                 if np.all(mantissa > lower_limit):
                     adjusted_msb = msb - 1
             if adjusted_msb != msb:
@@ -121,8 +108,7 @@ class Format:
                 msb = adjusted_msb
                 lsb = msb - wordlength + int(signed)
                 mantissa = mpquantize(
-                    mpvalue, nbits=-lsb,
-                    rounding_method=mpmath.nint
+                    mpvalue, nbits=-lsb, rounding_method=nearest_integer
                 )
             return mantissa, cls(msb=msb, lsb=lsb, signed=signed)
 
@@ -131,7 +117,7 @@ class Format:
         if b is None:
             b = a
             a = 1
-        return cls(msb=a-1, lsb=-b, signed=True)
+        return cls(msb=a - 1, lsb=-b, signed=True)
 
     sQ = Q
 
@@ -155,41 +141,41 @@ class Format:
     def __post_init__(self):
         if self.lsb > self.msb:
             raise ValueError(
-                'Least significant bit (LSB) cannot be larger than'
-                f' most significant bit (MSB): {self.lsb} > {self.msb}'
+                "Least significant bit (LSB) cannot be larger than"
+                f" most significant bit (MSB): {self.lsb} > {self.msb}"
             )
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def wordlength(self):
         return self.msb - self.lsb + int(self.signed)
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def mantissa_interval(self):
         if self.signed:
             return interval(
-                lower_bound=-2**(self.wordlength - 1),
-                upper_bound=2**(self.wordlength - 1) - 1
+                lower_bound=-(2 ** (self.wordlength - 1)),
+                upper_bound=2 ** (self.wordlength - 1) - 1,
             )
-        return interval(lower_bound=0, upper_bound=2**self.wordlength - 1)
+        return interval(lower_bound=0, upper_bound=2 ** self.wordlength - 1)
 
     def overflows_with(self, mantissa):
         return bool(np.any(mantissa not in self.mantissa_interval))
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def value_interval(self):
         with mpmath.workprec(self.wordlength + 1):  # wl bits is enough
             if self.signed:
                 return interval(
                     -mpmath.ldexp(1, self.msb),
-                    mpmath.ldexp(1, self.msb) - mpmath.ldexp(1, self.lsb)
+                    mpmath.ldexp(1, self.msb) - mpmath.ldexp(1, self.lsb),
                 )
             return interval(0, mpmath.ldexp(1, self.msb) - mpmath.ldexp(1, self.lsb))
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def value_epsilon(self):
         return mpmath.ldexp(1, self.lsb)
 
@@ -197,36 +183,40 @@ class Format:
         return bool(np.all(value in self.value_interval))
 
     def __eq__(self, other):
-        return self.msb == other.msb and self.lsb == other.lsb and self.signed == other.signed
+        return (
+            self.msb == other.msb
+            and self.lsb == other.lsb
+            and self.signed == other.signed
+        )
 
-    def represent(self, rvalue, rounding_method=round):
+    def represent(self, rvalue, rounding_method=nearest_integer):
         from ltitop.arithmetic.fixed_point.representation import Representation
-        if isinstance(rvalue, Representation) and hasattr(rounding_method, 'shift'):
+
+        if isinstance(rvalue, Representation) and hasattr(rounding_method, "shift"):
             lvalue = rvalue.mantissa
             quantize = functools.partial(
-                rounding_method.shift,
-                n=rvalue.format_.lsb - self.lsb)
+                rounding_method.shift, n=rvalue.format_.lsb - self.lsb
+            )
         else:
             lvalue = mpfloat(rvalue)
             quantize = functools.partial(
-                mpquantize, nbits=-self.lsb,
-                rounding_method=rounding_method)
+                mpquantize, nbits=-self.lsb, rounding_method=rounding_method
+            )
         if not self.signed and not np.all(lvalue >= 0):
-            raise ValueError(f'Unsigned format cannot represent {rvalue}')
+            raise ValueError(f"Unsigned format cannot represent {rvalue}")
         mantissa = quantize(lvalue)
         underflow = bool(np.any(np.logical_and(mantissa == 0, lvalue != 0)))
         overflow = bool(np.any(mantissa not in self.mantissa_interval))
         return mantissa, (underflow, overflow)
 
     def to_qnotation(self):
-        notation = "Q{}.{}".format(
-            self.msb + (1 if self.signed else 0), -self.lsb
-        )
-        return 'u' + notation if not self.signed else notation
+        notation = "Q{}.{}".format(self.msb + (1 if self.signed else 0), -self.lsb)
+        return "u" + notation if not self.signed else notation
 
     def to_pnotation(self):
         notation = "({},{})".format(self.msb, self.lsb)
-        return 'u' + notation if not self.signed else notation
+        return "u" + notation if not self.signed else notation
+
 
 Q = Format.Q
 sQ = Format.sQ

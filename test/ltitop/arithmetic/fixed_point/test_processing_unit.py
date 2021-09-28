@@ -18,16 +18,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
+
 from ltitop.arithmetic.fixed_point.processing_unit import ProcessingUnit
 
-import pytest
 
 def test_active_processing_unit():
     with pytest.raises(RuntimeError):
-        unit = ProcessingUnit.active()
+        ProcessingUnit.active()
     with ProcessingUnit() as a:
         with ProcessingUnit() as b:
             assert ProcessingUnit.active() is b
         assert ProcessingUnit.active() is a
     with pytest.raises(RuntimeError):
-        unit = ProcessingUnit.active()
+        ProcessingUnit.active()

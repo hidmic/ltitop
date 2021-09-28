@@ -28,6 +28,7 @@ def type_uniform_binary_operator(method):
         if not isinstance(other, cls):
             other = cls(other)
         return cls(method(self, other))
+
     return __operator_wrapper
 
 
@@ -36,6 +37,7 @@ def astuple(value):
         return tuple(iter(value))
     except TypeError:
         return (value,)
+
 
 def identity(x):
     return x

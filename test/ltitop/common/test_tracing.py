@@ -24,14 +24,14 @@ from ltitop.common.tracing import Traceable
 class TraceableWithNoPublicAPI(metaclass=Traceable):
     pass
 
+
 def test_traceable_with_no_public_api():
     obj = TraceableWithNoPublicAPI()
-    assert not hasattr(obj, 'trace')
-    assert not hasattr(obj, 'notrace')
+    assert not hasattr(obj, "trace")
+    assert not hasattr(obj, "notrace")
 
 
 class SimpleTraceable(metaclass=Traceable):
-
     def do_once(self, *args, **kwargs):
         return True
 
@@ -43,17 +43,17 @@ class SimpleTraceable(metaclass=Traceable):
 
 def test_traceable_outside_tracing_scope():
     obj = SimpleTraceable()
-    obj.do_once(1, 2, foo='bar')
-    obj.do_twice(3.0, True, fizz='buzz')
+    obj.do_once(1, 2, foo="bar")
+    obj.do_twice(3.0, True, fizz="buzz")
     assert not obj._traces
 
 
 def test_traceable_inside_tracing_scope():
     obj = SimpleTraceable()
     with obj.trace() as trace:
-        obj.do_once(1, 2, foo='bar')
-        obj.do_twice(3.0, True, fizz='buzz')
+        obj.do_once(1, 2, foo="bar")
+        obj.do_twice(3.0, True, fizz="buzz")
         assert trace == [
-            (SimpleTraceable.do_once, True, (1, 2), {'foo': 'bar'}),
-            (SimpleTraceable.do_twice, True, (3.0, True), {'fizz': 'buzz'})
+            (SimpleTraceable.do_once, True, (1, 2), {"foo": "bar"}),
+            (SimpleTraceable.do_twice, True, (3.0, True), {"fizz": "buzz"}),
         ]

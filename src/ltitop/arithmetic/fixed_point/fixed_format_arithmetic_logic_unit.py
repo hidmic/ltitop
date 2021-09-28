@@ -19,23 +19,16 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import functools
-import numpy as np
 
-from ltitop.arithmetic.errors import OverflowError
-from ltitop.arithmetic.errors import UnderflowError
-from ltitop.arithmetic.interval import interval
+from ltitop.arithmetic.errors import OverflowError, UnderflowError
+from ltitop.arithmetic.fixed_point.arithmetic_logic_unit import ArithmeticLogicUnit
 from ltitop.arithmetic.fixed_point.formats import Format
 from ltitop.arithmetic.fixed_point.representation import Representation
-from ltitop.arithmetic.rounding import nearest_integer
-
-from ltitop.arithmetic.fixed_point.arithmetic_logic_unit import ArithmeticLogicUnit
 from ltitop.arithmetic.floating_point import mpfloat
-
-from ltitop.common.memoization import memoize
+from ltitop.arithmetic.rounding import ceil, floor, nearest_integer, truncate
 
 
 class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
-
     class internals:
         @staticmethod
         def operation_method(method):
@@ -43,11 +36,12 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             def __wrapper(self, head, *tail):
                 if __debug__:
                     if head.format_ != self.format_:
-                        raise ValueError(f'{self} cannot handle {head}')
+                        raise ValueError(f"{self} cannot handle {head}")
                     for op in tail:
                         if op.format_ != self.format_:
-                            raise ValueError(f'{self} cannot handle {op}')
+                            raise ValueError(f"{self} cannot handle {op}")
                 return method(self, head, *tail)
+
             return __wrapper
 
     def __init__(self, *, format_, **kwargs):
@@ -67,26 +61,28 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         )
         if underflow and not self.represent.allows_underflow:
             raise UnderflowError(
-                f'{value} underflows in {self.format_}',
-                value, self.format_.value_epsilon
+                f"{value} underflows in {self.format_}",
+                value,
+                self.format_.value_epsilon,
             )
         if overflow:
             if not self.represent.allows_overflow:
                 raise OverflowError(
-                    f'{value} overflows in {self.format_}',
-                    value, self.format_.value_interval
+                    f"{value} overflows in {self.format_}",
+                    value,
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
             )
         return rtype(mantissa, self.format_)
 
-    @memoize
+    @functools.lru_cache
     def rinfo(self):
         return FixedFormatArithmeticLogicUnit.Info(
             eps=self.format_.value_epsilon,
             min=self.format_.value_interval.lower_bound,
-            max=self.format_.value_interval.upper_bound
+            max=self.format_.value_interval.upper_bound,
         )
 
     @internals.operation_method
@@ -95,9 +91,9 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if self.format_.overflows_with(mantissa):
             if not self.add.allows_overflow:
                 raise OverflowError(
-                    f'{x} + {y} overflows in {self.format_}',
+                    f"{x} + {y} overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
@@ -110,9 +106,9 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if self.format_.overflows_with(mantissa):
             if not self.substract.allows_overflow:
                 raise OverflowError(
-                    f'{x} - {y} overflows in {self.format_}',
+                    f"{x} - {y} overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
@@ -127,22 +123,24 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             format_=Format(
                 msb=self.format_.msb * 2 + 1,
                 lsb=self.format_.lsb * 2,
-                signed=self.format_.signed
-            )
+                signed=self.format_.signed,
+            ),
         )
         mantissa, (underflow, overflow) = self.format_.represent(
             z, rounding_method=self.rounding_method
         )
         if underflow and not self.multiply.allows_underflow:
             raise UnderflowError(
-                f'{x} * {y} underflows in {self.format_}',
-                mpfloat(z), self.format_.value_epsilon
+                f"{x} * {y} underflows in {self.format_}",
+                mpfloat(z),
+                self.format_.value_epsilon,
             )
         if overflow:
             if not self.multiply.allows_overflow:
                 raise OverflowError(
-                    f'{x} * {y} overflows in {self.format_}',
-                    mpfloat(z), self.format_.value_interval
+                    f"{x} * {y} overflows in {self.format_}",
+                    mpfloat(z),
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
@@ -158,14 +156,14 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if overflow:
             if not self.truncate.allows_overflow:
                 raise OverflowError(
-                    f'trunc({x}) overflows in {self.format_}',
+                    f"trunc({x}) overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
             )
-        return type(x)(mantissa, format_)
+        return type(x)(mantissa, self.format_)
 
     @internals.operation_method
     def floor(self, x):
@@ -176,14 +174,14 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if overflow:
             if not self.floor.allows_overflow:
                 raise OverflowError(
-                    f'floor({x}) overflows in {self.format_}',
+                    f"floor({x}) overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
             )
-        return type(x)(mantissa, format_)
+        return type(x)(mantissa, self.format_)
 
     @internals.operation_method
     def ceil(self, x):
@@ -194,14 +192,14 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if overflow:
             if not self.ceil.allows_overflow:
                 raise OverflowError(
-                    f'ceil({x}) overflows in {self.format_}',
+                    f"ceil({x}) overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
             )
-        return type(x)(mantissa, format_)
+        return type(x)(mantissa, self.format_)
 
     @internals.operation_method
     def nearest(self, x):
@@ -212,28 +210,28 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         if overflow:
             if not self.nearest.allows_overflow:
                 raise OverflowError(
-                    f'round({x}) overflows in {self.format_}',
+                    f"round({x}) overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
             )
-        return type(x)(mantissa, format_)
+        return type(x)(mantissa, self.format_)
 
     @internals.operation_method
     def negate(self, x):
         if not self.format_.signed:
-            raise RuntimeError('Cannot negate unsigned representations')
+            raise RuntimeError("Cannot negate unsigned representations")
         if x.mantissa == 0:
             return x
         mantissa = -x.mantissa
         if self.format_.overflows_with(mantissa):
             if not self.negate.allows_overflow:
                 raise OverflowError(
-                    f'{x} overflows in {self.format_}',
+                    f"{x} overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
@@ -246,17 +244,17 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
 
     def lshift(self, x, n):
         if x.format_ != self.format_:
-            raise ValueError(f'{self} cannot handle {x}')
+            raise ValueError(f"{self} cannot handle {x}")
         if n < 0:
-            raise ValueError(f'negative shift count {n}')
+            raise ValueError(f"negative shift count {n}")
         n = int(n)
         mantissa = x.mantissa << n
         if self.format_.overflows_with(mantissa):
             if not self.lshift.allows_overflow:
                 raise OverflowError(
-                    f'{x} << {n} overflows in {self.format_}',
+                    f"{x} << {n} overflows in {self.format_}",
                     mantissa * self.format_.value_epsilon,
-                    self.format_.value_interval
+                    self.format_.value_interval,
                 )
             mantissa, _ = self.overflow_behavior(
                 mantissa, range_=self.format_.mantissa_interval
@@ -265,11 +263,11 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
 
     def rshift(self, x, n):
         if x.format_ != self.format_:
-            raise ValueError(f'{self} cannot handle {x}')
+            raise ValueError(f"{self} cannot handle {x}")
         if n < 0:
-            raise ValueError(f'negative shift count {n}')
+            raise ValueError(f"negative shift count {n}")
         n = int(n)
         return type(x)(x.mantissa >> n, self.format_)
 
     def __str__(self):
-        return f'{self.format_.to_qnotation()} ALU'
+        return f"{self.format_.to_qnotation()} ALU"

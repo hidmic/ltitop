@@ -18,9 +18,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+import ltitop.arithmetic.fixed_point.symbol  # noqa
 from ltitop.arithmetic.fixed_point.number import Number
-import ltitop.arithmetic.fixed_point.symbol
+
 
 def fixed(*args, **kwargs):
     return Number.from_value(*args, **kwargs)
-

@@ -18,7 +18,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.error_bounded.number \
-    import Number as error_bounded
-import ltitop.arithmetic.error_bounded.symbol
+import ltitop.arithmetic.error_bounded.symbol  # noqa
+from ltitop.arithmetic.error_bounded.number import Number as error_bounded
 
+__all__ = [
+    "error_bounded",
+]

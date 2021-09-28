@@ -18,14 +18,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.interval import interval
-
 import mpmath
 import pytest
+
+from ltitop.arithmetic.interval import interval
+
 
 @pytest.fixture(params=[int, float, mpmath.mpf])
 def scalar(request):
     return request.param
+
 
 def test_interval_construction(scalar):
     with pytest.raises(TypeError):
@@ -152,6 +154,7 @@ def test_interval_comparison(scalar):
     assert not (iv_h > s_h)
     assert iv_h >= s_h
 
+
 def test_interval_arithmetic(scalar):
     iv_a = interval(scalar(-1), scalar(1))
     iv_b = interval(scalar(-2), scalar(2))
@@ -175,11 +178,13 @@ def test_interval_arithmetic(scalar):
         assert iv_c // iv_b == interval(scalar(-4), scalar(4))
     assert iv_c % iv_b == scalar(0)
 
+
 def test_interval_bitwise():
     iv = interval(2, 3)
     assert iv << 1 == interval(4, 6)
     assert iv >> 1 == 1
     assert iv >> 2 == 0
+
 
 def test_interval_membership(scalar):
     iv_a = interval(scalar(-1), scalar(1))

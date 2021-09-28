@@ -18,25 +18,25 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
-from dataclasses import FrozenInstanceError
 from ltitop.common.dataclasses import immutable_dataclass
 
 
 def test_immutable_dataclass():
-
     @immutable_dataclass
     class Dummy:
         a: int
         b: str
 
-    data = Dummy(1, 'foo')
+    data = Dummy(1, "foo")
     assert data.a == 1
-    assert data.b == 'foo'
+    assert data.b == "foo"
 
     with pytest.raises(FrozenInstanceError):
         data.a = 2
 
     with pytest.raises(FrozenInstanceError):
-        data.b = 'bar'
+        data.b = "bar"

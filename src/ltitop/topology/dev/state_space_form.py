@@ -19,10 +19,11 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import itertools
 import collections
-import sympy
+import itertools
+
 import numpy
+import sympy
 
 
 @immutable_dataclass
@@ -270,4 +271,3 @@ class StateSpaceModel(Model):
                 self.algorithm.perform(
                     X[k], U[k], A, B, C, D)
         return X, Y
-

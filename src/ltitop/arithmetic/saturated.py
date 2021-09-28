@@ -19,19 +19,16 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+
 from ltitop.arithmetic.interval import Interval
 from ltitop.common.arrays import vectorize
 
 
-@vectorize(excluded=['range_'])
+@vectorize(excluded=["range_"])
 def saturate(value, range_):
     if isinstance(value, Interval):
-        lower_bound, lower_overflow = saturate(
-            value.lower_bound, range_=range_
-        )
-        upper_bound, upper_overflow = saturate(
-            value.upper_bound, range_=range_
-        )
+        lower_bound, lower_overflow = saturate(value.lower_bound, range_=range_)
+        upper_bound, upper_overflow = saturate(value.upper_bound, range_=range_)
         overflow = np.logical_or(lower_overflow, upper_overflow)
         return Interval(lower_bound, upper_bound), overflow
     overflow = value < range_.lower_bound or value > range_.upper_bound

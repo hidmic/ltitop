@@ -22,15 +22,14 @@ import sympy
 
 from ltitop.arithmetic.error_bounded import error_bounded
 from ltitop.arithmetic.fixed_point import fixed
-from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit \
-    import FixedFormatArithmeticLogicUnit
+from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit import (
+    FixedFormatArithmeticLogicUnit,
+)
 from ltitop.arithmetic.fixed_point.formats import Q
 
 
 def test_mixed_symbols():
-    with FixedFormatArithmeticLogicUnit(
-        format_=Q(7), allows_overflow=False
-    ):
+    with FixedFormatArithmeticLogicUnit(format_=Q(7), allows_overflow=False):
         a = sympy.sympify(fixed(0.5))
         b = sympy.sympify(error_bounded(0.25))
         assert (a * b).number == fixed(0.125)

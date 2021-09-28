@@ -19,12 +19,11 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import mpmath
+from sympy.core.numbers import Float, Integer, Rational
+from sympy.core.sympify import converter
 
-from sympy.core.numbers import Integer
-from sympy.core.numbers import Float
-from sympy.core.numbers import Rational
-from ltitop.arithmetic.symbolic import BaseNumber
 from ltitop.arithmetic.fixed_point.number import Number as FixedPointNumber
+from ltitop.arithmetic.symbolic import BaseNumber
 
 
 class Fixed(BaseNumber):
@@ -44,9 +43,7 @@ class Fixed(BaseNumber):
         if isinstance(value, Integer):
             value = value.p
         elif isinstance(value, (Float, Rational)):
-            value = mpmath.make_mpf(
-                value._as_mpf_val(mpmath.mp.prec)
-            )
+            value = mpmath.make_mpf(value._as_mpf_val(mpmath.mp.prec))
         if not isinstance(value, FixedPointNumber):
             value = FixedPointNumber.from_value(value)
         return cls._new(value)
@@ -65,5 +62,5 @@ class Fixed(BaseNumber):
     def q(self):
         return 1
 
-from sympy.core.sympify import converter
+
 converter[FixedPointNumber] = Fixed

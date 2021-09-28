@@ -18,17 +18,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import ltitop.algebra.polynomials as poly
-import ltitop.algebra.rational_functions as rf
-
 import numpy as np
-from scipy.signal import tf2zpk
-from scipy.signal import zpk2tf
-
-from numpy.testing import assert_equal
-from numpy.testing import assert_almost_equal
-
 import pytest
+from numpy.testing import assert_almost_equal
+from scipy.signal import tf2zpk, zpk2tf
+
+import ltitop.algebra.rational_functions as rf
 
 
 def test_add():
@@ -100,14 +95,11 @@ def test_partial_fractions_expansion():
     #   = (0.125 - 0.22592403j) / (z + 0.5 - 1.93649167j) +
     #     (0.125 + 0.22592403j) / (z + 0.5 + 1.93649167j) +
     #     (-0.25) / (z + 1)
-    F = Fz, Fp, Fk = tf2zpk([1, 0], [1, 2, 5, 4])
-    residues, poles, order = \
-        rf.partial_fractions_expansion(Fz, Fp, tol=1e-10)
+    Fz, Fp, Fk = tf2zpk([1, 0], [1, 2, 5, 4])
+    residues, poles, order = rf.partial_fractions_expansion(Fz, Fp, tol=1e-10)
 
-    expected_residues = np.array([
-        -0.25, 0.125 - 0.22592403j, 0.125 + 0.22592403j])
-    expected_poles = np.array([
-        -1., -0.5 + 1.93649167j, -0.5 - 1.93649167j])
+    expected_residues = np.array([-0.25, 0.125 - 0.22592403j, 0.125 + 0.22592403j])
+    expected_poles = np.array([-1.0, -0.5 + 1.93649167j, -0.5 - 1.93649167j])
     expected_order = np.array([1, 1, 1])
 
     ordering = np.argsort(residues)
@@ -118,9 +110,9 @@ def test_partial_fractions_expansion():
 
 def test_summation_decomposition():
     # F = 1 / (z + 0.5)
-    F = Fz, Fp, Fk = tf2zpk([1.], [1., 0.5])
+    F = Fz, Fp, Fk = tf2zpk([1.0], [1.0, 0.5])
     terms = rf.summation_decomposition(*F, nterms=2)
-    S = Sz, Sp, Sk = rf.summation(terms)
+    Sz, Sp, Sk = rf.summation(terms)
     assert_almost_equal(np.sort(Sz), np.sort(Fz))
     assert_almost_equal(np.sort(Sp), np.sort(Fp))
     assert_almost_equal(Sk, Fk)
@@ -128,7 +120,7 @@ def test_summation_decomposition():
     # F = (z^2 - 2) / (z^4 + 2 * z^3 + 2 * z^2 + 1)
     F = Fz, Fp, Fk = tf2zpk([1, 0, -2], [1, 2, 2, 1])
     terms = rf.summation_decomposition(*F, nterms=2)
-    S = Sz, Sp, Sk = rf.summation(terms)
+    Sz, Sp, Sk = rf.summation(terms)
     assert_almost_equal(np.sort(Sz), np.sort(Fz))
     assert_almost_equal(np.sort(Sp), np.sort(Fp))
     assert_almost_equal(Sk, Fk)
@@ -136,14 +128,15 @@ def test_summation_decomposition():
 
 def isreal(rf):
     b, a = zpk2tf(*rf)
-    return np.all(np.isreal(np.real_if_close(b))) \
-        and np.all(np.isreal(np.real_if_close(a)))
+    return np.all(np.isreal(np.real_if_close(b))) and np.all(
+        np.isreal(np.real_if_close(a))
+    )
 
 
 @pytest.mark.skip
 def test_real_summation_partition():
     # F = 1 / (z + 0.5)
-    F = Fz, Fp, Fk = tf2zpk([1.], [1., 0.5])
+    F = Fz, Fp, Fk = tf2zpk([1.0], [1.0, 0.5])
     L, R = rf.real_summation_partition(F)
     assert isreal(L) and isreal(R)
     Sz, Sp, Sk = rf.add(L, R)
@@ -166,17 +159,17 @@ def test_real_summation_partition():
     assert isreal(L) and isreal(R)
     Sz, Sp, Sk = rf.add(L, R)
     assert_almost_equal(
-        np.sort(np.around(Fz, decimals=15)),
-        np.sort(np.around(Sz, decimals=15)))
+        np.sort(np.around(Fz, decimals=15)), np.sort(np.around(Sz, decimals=15))
+    )
     assert_almost_equal(
-        np.sort(np.around(Fp, decimals=15)),
-        np.sort(np.around(Sp, decimals=15)))
+        np.sort(np.around(Fp, decimals=15)), np.sort(np.around(Sp, decimals=15))
+    )
     assert_almost_equal(Fk, Sk)
 
 
 def test_real_product_decomposition():
     # F = 1 / (z + 0.5)
-    F = Fz, Fp, Fk = tf2zpk([1.], [1., 0.5])
+    F = Fz, Fp, Fk = tf2zpk([1.0], [1.0, 0.5])
     terms = rf.real_product_decomposition(*F, nterms=2)
     assert all(isreal(term) for term in terms)
     Pz, Pp, Pk = rf.product(terms)

@@ -19,50 +19,58 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import itertools
-import scipy.signal as signal
-import numpy as np
-
-from numpy.testing import assert_allclose
-from numpy.testing import assert_array_equal
-
-from ltitop.arithmetic.interval import interval
-from ltitop.arithmetic.fixed_point.formats import uQ, Q
-from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit \
-    import FixedFormatArithmeticLogicUnit
-from ltitop.arithmetic.rounding import nearest_integer
-
-from ltitop.topology.realizations.direct_forms import DirectFormI
-from ltitop.topology.realizations.direct_forms import DirectFormII
-from ltitop.topology.realizations.direct_forms import TransposedDirectFormII
 
 import pytest
+import scipy.signal as signal
+from numpy.testing import assert_allclose
 
-@pytest.mark.parametrize('realization_type,model', itertools.product([
-    DirectFormI, DirectFormII, TransposedDirectFormII
-], [
-    signal.dlti([1, 0], [1, -0.5]),
-    signal.dlti([1], [1, 0.5]),
-    signal.dlti([1], [1, 2, 1]),
-    signal.dlti([1, 2, 1], [1, 0, 0]),
-]))
+from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit import (
+    FixedFormatArithmeticLogicUnit,
+)
+from ltitop.arithmetic.fixed_point.formats import Q
+from ltitop.arithmetic.interval import interval
+from ltitop.arithmetic.rounding import nearest_integer
+from ltitop.topology.realizations.direct_forms import (
+    DirectFormI,
+    DirectFormII,
+    TransposedDirectFormII,
+)
+
+
+@pytest.mark.parametrize(
+    "realization_type,model",
+    itertools.product(
+        [DirectFormI, DirectFormII, TransposedDirectFormII],
+        [
+            signal.dlti([1, 0], [1, -0.5]),
+            signal.dlti([1], [1, 0.5]),
+            signal.dlti([1], [1, 2, 1]),
+            signal.dlti([1, 2, 1], [1, 0, 0]),
+        ],
+    ),
+)
 def test_models_are_realized(realization_type, model):
     block = realization_type.from_model(model)
     assert_allclose(model.freqresp()[1], block.model.freqresp()[1])
 
-    _, outputs = block.process(inputs=[1.] + [0.] * 99)
+    _, outputs = block.process(inputs=[1.0] + [0.0] * 99)
     _, (impulse_response,) = model.impulse(n=100)
     assert_allclose(outputs, impulse_response)
 
 
-@pytest.mark.parametrize('realization_type', [
-    DirectFormI, DirectFormII, TransposedDirectFormII
-])
+@pytest.mark.parametrize(
+    "realization_type", [DirectFormI, DirectFormII, TransposedDirectFormII]
+)
 def test_realization_error_bounds(realization_type):
     model = signal.dlti([1], [1, -0.5])  # y[n] = x[n - 1] - 0.5 y[n - 1]
     block = realization_type.from_model(model)
     with FixedFormatArithmeticLogicUnit(
-        format_=Q(7), allows_overflow=False,
+        format_=Q(7),
+        allows_overflow=False,
         rounding_method=nearest_integer,
     ):
-        assert block.computation_error_bounds(interval(-0.25, 0.25)) in \
-            10 * nearest_integer.error_bounds(-7)  # reasonable tolerance
+        assert block.computation_error_bounds(
+            interval(-0.25, 0.25)
+        ) in 10 * nearest_integer.error_bounds(
+            -7
+        )  # reasonable tolerance

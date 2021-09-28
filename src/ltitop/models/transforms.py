@@ -19,22 +19,24 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import functools
+
 import scipy.signal as signal
+
 
 def transform(func, model, **kwargs):
     model = model._as_zpk()
-    return signal.ltisys.ZerosPolesGain(*func(
-        model.zeros, model.poles, model.gain, **kwargs
-    ))
+    return signal.ltisys.ZerosPolesGain(
+        *func(model.zeros, model.poles, model.gain, **kwargs)
+    )
+
 
 lowpass_to_lowpass = functools.partial(transform, signal.lp2lp_zpk)
 lowpass_to_highpass = functools.partial(transform, signal.lp2hp_zpk)
 lowpass_to_bandpass = functools.partial(transform, signal.lp2bp_zpk)
 lowpass_to_bandstop = functools.partial(transform, signal.lp2bs_zpk)
 
+
 def discretize(model, dt):
     model = model._as_zpk()
-    z, p, k = signal.bilinear_zpk(
-        model.zeros, model.poles, model.gain, 1/dt
-    )
+    z, p, k = signal.bilinear_zpk(model.zeros, model.poles, model.gain, 1 / dt)
     return signal.ltisys.ZerosPolesGainDiscrete(z, p, k, dt=dt)

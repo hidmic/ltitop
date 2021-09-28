@@ -18,21 +18,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import functools
-
-from ltitop.arithmetic.interval import interval
-from ltitop.arithmetic.modular import wraparound
-from ltitop.arithmetic.rounding import floor
-
 from ltitop.arithmetic.fixed_point.processing_unit import ProcessingUnit
 
 
 class ArithmeticLogicUnit(ProcessingUnit):
-
     def __init__(self, *, wordlength, **kwargs):
         super().__init__(**kwargs)
         if wordlength < 1:
-            raise ValueError(f'{wordlength} cannot be less than 1 bit')
+            raise ValueError(f"{wordlength} cannot be less than 1 bit")
         self.__wordlength = wordlength
 
     @property
@@ -40,4 +33,4 @@ class ArithmeticLogicUnit(ProcessingUnit):
         return self.__wordlength
 
     def __str__(self):
-        return f'{self.wordlength} bits ALU'
+        return f"{self.wordlength} bits ALU"

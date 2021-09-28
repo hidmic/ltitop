@@ -19,6 +19,7 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import sympy
+from sympy.core.sympify import converter
 
 from ltitop.arithmetic.error_bounded.number import Number as ErrorBoundedNumber
 from ltitop.arithmetic.symbolic import BaseNumber
@@ -39,11 +40,10 @@ class ErrorBounded(BaseNumber):
         if isinstance(value, cls):
             return value
         if isinstance(value, ErrorBoundedNumber):
-            return cls._new(ErrorBoundedNumber(
-                sympy.sympify(value.number), value.error_bounds
-            ))
+            return cls._new(
+                ErrorBoundedNumber(sympy.sympify(value.number), value.error_bounds)
+            )
         return cls._new(ErrorBoundedNumber(sympy.sympify(value)))
 
 
-from sympy.core.sympify import converter
 converter[ErrorBoundedNumber] = ErrorBounded

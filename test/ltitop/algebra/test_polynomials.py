@@ -18,12 +18,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import ltitop.algebra.polynomials as poly
-
-import numpy as np
-from numpy.testing import assert_equal
-from numpy.testing import assert_almost_equal
 import pytest
+from numpy.testing import assert_almost_equal, assert_equal
+
+import ltitop.algebra.polynomials as poly
 
 
 def test_from_roots():
@@ -36,11 +34,13 @@ def test_from_roots():
     # P = (z - 2) * (z - 5) = (z^2 - 7 * z + 10)
     assert_almost_equal([1, -7, 10], poly.from_roots((2, 5)))
     # P = (z - (0.5+0.5j)) * (z - (0.5-0.5j)) = (z^2 - z + 0.5)
-    assert_almost_equal([1, -1, 0.5], poly.from_roots((0.5+0.5j, 0.5-0.5j)))
+    assert_almost_equal([1, -1, 0.5], poly.from_roots((0.5 + 0.5j, 0.5 - 0.5j)))
+
 
 def test_simplify():
     # P = z^3 + z^2 + 1e-6 * z + (1+1e-6j) ~ z^3 + z^2 + 1
-    assert_equal([1, 1, 0, 1], poly.simplify([1, 1, 1e-6, 1+1e-6j], tol=1e-5))
+    assert_equal([1, 1, 0, 1], poly.simplify([1, 1, 1e-6, 1 + 1e-6j], tol=1e-5))
+
 
 def test_add():
     # P = z^2 - z + 1
@@ -50,6 +50,7 @@ def test_add():
     # R = P + Q = z^2 + 1
     R = [1, 0, 1]
     assert_equal(R, poly.add(P, Q))
+
 
 def test_summation():
     # P = z^2 - z + 1
@@ -62,6 +63,7 @@ def test_summation():
     S = [2, 1, -2, 6]
     assert_equal(S, poly.summation([P, Q, R]))
 
+
 def test_multiply():
     # P = z - 2
     P = [1, -2]
@@ -70,6 +72,7 @@ def test_multiply():
     # R = P * Q = z^3 - 2 * z^2 - z + 2
     R = [1, -2, -1, 2]
     assert_equal(R, poly.multiply(P, Q))
+
 
 def test_product():
     # P = z - 2
@@ -81,6 +84,7 @@ def test_product():
     # S = P * Q * R = z^6 - 2 * z^5 - z^4 + 2 * z^3    z^4 - 2 * z^3 - z^2 + 2 * z
     S = [1, -2, 0, 0, -1, 2, 0]
     assert_equal(S, poly.product([P, Q, R]))
+
 
 def test_real_polynomial_factorization():
     # P = z
@@ -106,7 +110,7 @@ def test_real_polynomial_factorization():
 def test_complex_polynomial_factorization():
     # P = k * (z - 2) * (z - 1+1j)
     kp = 1
-    pterms = [[1, -1], [1, -1+1j]]
+    pterms = [[1, -1], [1, -1 + 1j]]
     P = kp * poly.product(pterms)
 
     with pytest.raises(ValueError):

@@ -19,16 +19,16 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import math
+
 import sympy
 
-from ltitop.algorithms.expressions.arithmetic import associative
 from ltitop.algorithms.expressions.arithmetic import nonassociative
-
-from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.fixed_point.multi_format_arithmetic_logic_unit \
-    import MultiFormatArithmeticLogicUnit
-from ltitop.arithmetic.fixed_point.formats import uQ, Q
 from ltitop.arithmetic.fixed_point import fixed
+from ltitop.arithmetic.fixed_point.formats import Q
+from ltitop.arithmetic.fixed_point.multi_format_arithmetic_logic_unit import (
+    MultiFormatArithmeticLogicUnit,
+)
+from ltitop.arithmetic.rounding import nearest_integer
 
 
 def test_nonassociative_expression():
@@ -37,16 +37,16 @@ def test_nonassociative_expression():
         allows_overflow=False,
         allows_underflow=True,
         rounding_method=nearest_integer,
-    ) as alu:
-        x, y, z, w = sympy.symbols('x y z w')
+    ):
+        x, y, z, w = sympy.symbols("x y z w")
         expr = x + y + z + w
         subs = {
-            x: fixed(2**-5, format_=Q(2, 5)),
-            y: fixed(2**-3, format_=Q(3, 4)),
-            z: fixed(2**-1, format_=Q(4, 3)),
-            w: fixed(2, format_=Q(5, 2))
+            x: fixed(2 ** -5, format_=Q(2, 5)),
+            y: fixed(2 ** -3, format_=Q(3, 4)),
+            z: fixed(2 ** -1, format_=Q(4, 3)),
+            w: fixed(2, format_=Q(5, 2)),
         }
         result0 = nonassociative(variant=0)(expr).subs(subs)
         result1 = nonassociative(variant=1)(expr).subs(subs)
-        assert math.isclose(result0, result1, abs_tol=2**result0.format_.lsb)
+        assert math.isclose(result0, result1, abs_tol=2 ** result0.format_.lsb)
         assert result0 != result1

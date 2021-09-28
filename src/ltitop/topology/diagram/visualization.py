@@ -18,26 +18,38 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+
 import pygraphviz as pgv
 import sympy
-import sys
 
 
 def pretty(diagram):
     agraph = pgv.AGraph(
-        directed=True, rankdir='TB', splines='polyline',)
-    agraph.add_nodes_from(
-        diagram.nodes, label='', xlabel=r'\N',
-        shape='circle', color='black', style='filled',
-        width=0.1, fixedsize=True
+        directed=True,
+        rankdir="TB",
+        splines="polyline",
     )
-    for u, v, w, block in diagram.edges(data='block', keys=True):
-        n = f'{v} += f({u}) ({w})'
+    agraph.add_nodes_from(
+        diagram.nodes,
+        label="",
+        xlabel=r"\N",
+        shape="circle",
+        color="black",
+        style="filled",
+        width=0.1,
+        fixedsize=True,
+    )
+    for u, v, w, block in diagram.edges(data="block", keys=True):
+        n = f"{v} += f({u}) ({w})"
         agraph.add_node(
-            n, label=sympy.pretty(block, num_columns=sys.maxsize),
-            fontname='courier', shape='box', style='solid'
+            n,
+            label=sympy.pretty(block, num_columns=sys.maxsize),
+            fontname="courier",
+            shape="box",
+            style="solid",
         )
-        agraph.add_edge(u, n, style='solid', arrowsize=0.5)
-        agraph.add_edge(n, v, style='solid', arrowsize=0.5)
-    agraph.layout(prog='dot')
+        agraph.add_edge(u, n, style="solid", arrowsize=0.5)
+        agraph.add_edge(n, v, style="solid", arrowsize=0.5)
+    agraph.layout(prog="dot")
     return agraph

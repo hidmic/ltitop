@@ -21,8 +21,6 @@
 import dataclasses
 import functools
 
-import sympy
-
 from ltitop.algorithms import Algorithm
 from ltitop.algorithms.statements import Assignment
 
@@ -31,10 +29,8 @@ def reconfigure(expr, predicate):
     expr, done = predicate(expr)
     if done or not expr.args:
         return expr
-    return expr.func(*(
-        reconfigure(arg, predicate)
-        for arg in expr.args
-    ))
+    return expr.func(*(reconfigure(arg, predicate) for arg in expr.args))
+
 
 def modifier(func):
     @functools.wraps(func)
@@ -51,7 +47,6 @@ def modifier(func):
                     rhs = func(rhs)
                 statement = Assignment(statement.lhs, rhs)
             modified_procedure.append(statement)
-        return dataclasses.replace(
-            algorithm, procedure=tuple(modified_procedure)
-        )
+        return dataclasses.replace(algorithm, procedure=tuple(modified_procedure))
+
     return _modifier

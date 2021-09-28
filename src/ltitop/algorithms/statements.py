@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import sympy
 
@@ -28,57 +27,59 @@ from ltitop.common.dataclasses import immutable_dataclass
 
 @immutable_dataclass
 class Statement:
-
     def perform(self, scope):
         raise NotImplementedError()
+
 
 @immutable_dataclass
 class Assignment(Statement):
     lhs: Union[sympy.Expr, Tuple[sympy.Expr]]
     rhs: Union[sympy.Expr, Tuple[sympy.Expr]]
 
-    __slots__ = ('perform')
+    __slots__ = "perform"
 
     def __post_init__(self):
         if not self.lhs or not self.rhs:
-            raise ValueError(f'Incomplete assignment: {self}')
+            raise ValueError(f"Incomplete assignment: {self}")
         lhs_is_tuple = isinstance(self.lhs, tuple)
         rhs_is_tuple = isinstance(self.rhs, tuple)
         if lhs_is_tuple and rhs_is_tuple:
             if len(self.lhs) != len(self.rhs):
-                raise ValueError(f'Unbalanced assignment: {self}')
-            def structured_assign(scope={}):
+                raise ValueError(f"Unbalanced assignment: {self}")
+
+            def structured_assign(scope=None):
+                scope = scope.items() if scope is not None else []
                 return {
-                    lhs: rhs.subs(scope.items()).doit()
-                    for lhs, rhs in zip(self.lhs, self.rhs)
+                    lhs: rhs.subs(scope).doit() for lhs, rhs in zip(self.lhs, self.rhs)
                 }
-            super().__setattr__('perform', structured_assign)
+
+            super().__setattr__("perform", structured_assign)
         elif not lhs_is_tuple and rhs_is_tuple:
-            def pack_rvalues(scope={}):
-                rvalues = tuple(
-                    rhs.subs(scope.items()).doit()
-                    for rhs in self.rhs)
+
+            def pack_rvalues(scope=None):
+                scope = scope.items() if scope is not None else []
+                rvalues = tuple(rhs.subs(scope).doit() for rhs in self.rhs)
                 return {self.lhs: sympy.Tuple(*rvalues)}
-            super().__setattr__('perform', pack_rvalues)
+
+            super().__setattr__("perform", pack_rvalues)
         elif lhs_is_tuple and not rhs_is_tuple:
-            def unpack_rvalue(scope={}):
-                rvalue = self.rhs.subs(scope.items()).doit()
-                return {
-                    self.lhs[i]: rvalue[i]
-                    for i in range(len(self.lhs))
-                }
-            super().__setattr__('perform', unpack_rvalue)
+
+            def unpack_rvalue(scope=None):
+                scope = scope.items() if scope is not None else []
+                rvalue = self.rhs.subs(scope).doit()
+                return {self.lhs[i]: rvalue[i] for i in range(len(self.lhs))}
+
+            super().__setattr__("perform", unpack_rvalue)
         else:  # not lhs_is_tuple and not rhs_is_tuple
-            def direct_assign(scope={}):
-                return {self.lhs: self.rhs.subs(scope.items()).doit()}
-            super().__setattr__('perform', direct_assign)
+
+            def direct_assign(scope=None):
+                scope = scope.items() if scope is not None else []
+                return {self.lhs: self.rhs.subs(scope).doit()}
+
+            super().__setattr__("perform", direct_assign)
 
     def __str__(self):
-        return '{} = {}'.format(
-            ', '.join(map(str, self.lhs))
-            if isinstance(self.lhs, tuple)
-            else self.lhs,
-            ', '.join(map(str, self.rhs))
-            if isinstance(self.rhs, tuple)
-            else self.rhs,
+        return "{} = {}".format(
+            ", ".join(map(str, self.lhs)) if isinstance(self.lhs, tuple) else self.lhs,
+            ", ".join(map(str, self.rhs)) if isinstance(self.rhs, tuple) else self.rhs,
         )

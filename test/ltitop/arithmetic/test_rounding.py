@@ -18,46 +18,48 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.rounding import ceil
-from ltitop.arithmetic.rounding import floor
-from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.rounding import truncate
-
 import mpmath
 import pytest
+
+from ltitop.arithmetic.rounding import ceil, floor, nearest_integer, truncate
+
 
 @pytest.fixture(params=[float, mpmath.mpf])
 def scalar(request):
     return request.param
 
+
 def test_nearest_integer(scalar):
-    assert scalar(-2) == nearest_integer(scalar(-1.6))
-    assert scalar(-1) == nearest_integer(scalar(-1.4))
-    assert scalar(0) == nearest_integer(scalar(0))
-    assert scalar(1) == nearest_integer(scalar(1))
-    assert scalar(1) == nearest_integer(scalar(1.4))
-    assert scalar(2) == nearest_integer(scalar(1.6))
+    assert scalar(-2) == nearest_integer.apply(scalar(-1.6))
+    assert scalar(-1) == nearest_integer.apply(scalar(-1.4))
+    assert scalar(0) == nearest_integer.apply(scalar(0))
+    assert scalar(1) == nearest_integer.apply(scalar(1))
+    assert scalar(1) == nearest_integer.apply(scalar(1.4))
+    assert scalar(2) == nearest_integer.apply(scalar(1.6))
+
 
 def test_floor(scalar):
-    assert scalar(-2) == floor(scalar(-1.6))
-    assert scalar(-2) == floor(scalar(-1.4))
-    assert scalar(0) == floor(scalar(0))
-    assert scalar(1) == floor(scalar(1))
-    assert scalar(1) == floor(scalar(1.4))
-    assert scalar(1) == floor(scalar(1.6))
+    assert scalar(-2) == floor.apply(scalar(-1.6))
+    assert scalar(-2) == floor.apply(scalar(-1.4))
+    assert scalar(0) == floor.apply(scalar(0))
+    assert scalar(1) == floor.apply(scalar(1))
+    assert scalar(1) == floor.apply(scalar(1.4))
+    assert scalar(1) == floor.apply(scalar(1.6))
+
 
 def test_ceil(scalar):
-    assert scalar(-1) == ceil(scalar(-1.6))
-    assert scalar(-1) == ceil(scalar(-1.4))
-    assert scalar(0) == ceil(scalar(0))
-    assert scalar(1) == ceil(scalar(1))
-    assert scalar(2) == ceil(scalar(1.4))
-    assert scalar(2) == ceil(scalar(1.6))
+    assert scalar(-1) == ceil.apply(scalar(-1.6))
+    assert scalar(-1) == ceil.apply(scalar(-1.4))
+    assert scalar(0) == ceil.apply(scalar(0))
+    assert scalar(1) == ceil.apply(scalar(1))
+    assert scalar(2) == ceil.apply(scalar(1.4))
+    assert scalar(2) == ceil.apply(scalar(1.6))
+
 
 def test_truncate(scalar):
-    assert scalar(-1) == truncate(scalar(-1.6))
-    assert scalar(-1) == truncate(scalar(-1.4))
-    assert scalar(0) == truncate(scalar(0))
-    assert scalar(1) == truncate(scalar(1))
-    assert scalar(1) == truncate(scalar(1.4))
-    assert scalar(1) == truncate(scalar(1.6))
+    assert scalar(-1) == truncate.apply(scalar(-1.6))
+    assert scalar(-1) == truncate.apply(scalar(-1.4))
+    assert scalar(0) == truncate.apply(scalar(0))
+    assert scalar(1) == truncate.apply(scalar(1))
+    assert scalar(1) == truncate.apply(scalar(1.4))
+    assert scalar(1) == truncate.apply(scalar(1.6))
