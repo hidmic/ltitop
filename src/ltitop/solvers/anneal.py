@@ -22,19 +22,21 @@ from simanneal import Annealer
 
 import ltitop.solvers.gp as gp
 
+
 def cast(*args, **kwargs):
     toolbox = gp.cast(*args, **kwargs)
+
     class ImplementationAnnealer(Annealer):
         def move(self):
             self.state = toolbox.mutate(self.state)
 
         def energy(self):
             print(self.state)
-            self.state.fitness.values = \
-                toolbox.evaluate(self.state)
-            return sum(w * v for w, v in zip(
-                self.state.fitness.weights,
-                self.state.fitness.values))
+            self.state.fitness.values = toolbox.evaluate(self.state)
+            return sum(
+                w * v
+                for w, v in zip(self.state.fitness.weights, self.state.fitness.values)
+            )
 
         def anneal(self):
             state, _ = super().anneal()

@@ -18,88 +18,96 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.interval import Interval, interval
-from ltitop.common.annotation import annotated_function
-
 import math
 
+import numpy as np
 
-@annotated_function
-def nearest_integer(x):
-    return round(x)
+from ltitop.arithmetic.interval import Interval, interval
 
-@nearest_integer.annotate
-def shift(value, n):
-    if isinstance(value, Interval):
-        return Interval(
-            lower_bound=nearest_integer.shift(value.lower_bound, n),
-            upper_bound=nearest_integer.shift(value.upper_bound, n)
+
+class nearest_integer:
+    @staticmethod
+    def apply(x):
+        return round(x)
+
+    @staticmethod
+    def shift(value, n):
+        if isinstance(value, Interval):
+            return Interval(
+                lower_bound=nearest_integer.shift(value.lower_bound, n),
+                upper_bound=nearest_integer.shift(value.upper_bound, n),
+            )
+        result = floor.shift(value, n)
+        if n < 0:
+            result += (value >> (-n - 1)) % 2
+        return result
+
+    @staticmethod
+    def error_bounds(output_lsb, input_lsb=None):
+        if input_lsb is None:
+            return interval(-(2 ** (output_lsb - 1)), 2 ** (output_lsb - 1))
+        return interval(
+            -(2 ** (output_lsb - 1)) + 2 ** input_lsb, 2 ** (output_lsb - 1)
         )
-    result = floor.shift(value, n)
-    if n < 0:
-        result += (value >> (-n - 1)) % 2
-    return result
 
-@nearest_integer.annotate
-def error_bounds(output_lsb, input_lsb=None):
-    if input_lsb is None:
-        return interval(-2**(output_lsb-1), 2**(output_lsb-1))
-    return interval(
-        -2**(output_lsb-1) + 2**input_lsb, 2**(output_lsb-1)
-    )
 
-@annotated_function
-def floor(x):
-    return math.floor(x)
+class floor:
+    @staticmethod
+    def apply(x):
+        return math.floor(x)
 
-@floor.annotate
-def error_bounds(output_lsb, input_lsb=None):
-    if input_lsb is None:
-        return interval(-2**output_lsb, 0)
-    return interval(-2**output_lsb + 2**input_lsb, 0)
+    @staticmethod
+    def error_bounds(output_lsb, input_lsb=None):
+        if input_lsb is None:
+            return interval(-(2 ** output_lsb), 0)
+        return interval(-(2 ** output_lsb) + 2 ** input_lsb, 0)
 
-@floor.annotate
-def shift(value, n):
-    if n > 0:
-        return value << n
-    if n < 0:
-        return value >> -n
-    return value
+    @staticmethod
+    def shift(value, n):
+        if n > 0:
+            return value << n
+        if n < 0:
+            return value >> -n
+        return value
 
-@annotated_function
-def ceil(x):
-    return math.ceil(x)
 
-@ceil.annotate
-def shift(value, n):
-    return -floor.shift(-value, n)
+class ceil:
+    @staticmethod
+    def apply(x):
+        return math.ceil(x)
 
-@ceil.annotate
-def error_bounds(output_lsb, input_lsb=None):
-    if input_lsb is None:
-        return interval(0, 2**output_lsb)
-    return interval(0, 2**output_lsb - 2**input_lsb)
+    @staticmethod
+    def shift(value, n):
+        return -floor.shift(-value, n)
 
-@annotated_function
-def truncate(x):
-    try:
-        return math.trunc(x)
-    except TypeError:
-        return math.floor(x) if x > 0 else math.ceil(x)
+    @staticmethod
+    def error_bounds(output_lsb, input_lsb=None):
+        if input_lsb is None:
+            return interval(0, 2 ** output_lsb)
+        return interval(0, 2 ** output_lsb - 2 ** input_lsb)
 
-@truncate.annotate
-def shift(value, n):
-    if isinstance(value, Interval):
-        return Interval(
-            lower_bound=truncate.shift(value.lower_bound, n),
-            upper_bound=truncate.shift(value.upper_bound, n)
-        )
-    results = np.array([floor.shift(value, n), ceil.shift(value, n)])
-    return results[np.argmin(np.abs(results), axis=0), np.arange(results.shape[1])]
 
-@truncate.annotate
-def error_bounds(output_lsb, input_lsb=None):
-    bounds = interval(-2**output_lsb, 2**output_lsb)
-    if input_lsb is not None:
-        bounds += interval(2**input_lsb, -2**input_lsb)
-    return bounds
+class truncate:
+    @staticmethod
+    def apply(x):
+        try:
+            return math.trunc(x)
+        except TypeError:
+            return math.floor(x) if x > 0 else math.ceil(x)
+
+    @staticmethod
+    def shift(value, n):
+        if isinstance(value, Interval):
+            return Interval(
+                lower_bound=truncate.shift(value.lower_bound, n),
+                upper_bound=truncate.shift(value.upper_bound, n),
+            )
+        results = np.array([floor.shift(value, n), ceil.shift(value, n)])
+        return results[np.argmin(np.abs(results), axis=0), np.arange(results.shape[1])]
+
+    @staticmethod
+    def error_bounds(output_lsb, input_lsb=None):
+        bounds = interval(-(2 ** output_lsb), 2 ** output_lsb)
+        if input_lsb is not None:
+            bounds += interval(2 ** input_lsb, -(2 ** input_lsb))
+        return bounds

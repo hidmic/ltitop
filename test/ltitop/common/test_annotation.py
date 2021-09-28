@@ -33,8 +33,9 @@ def test_annotation():
         return [True, False]
 
     with pytest.raises(ValueError):
+
         @do_something.annotate
-        def possible_results():
+        def possible_results():  # noqa
             return [True]
 
     assert do_something.possible_results() == [True, False]

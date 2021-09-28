@@ -34,9 +34,9 @@ class mpinfo:
     max: mpmath.mpf
 
     def __init__(self):
-        super().__setattr__('eps', mpmath.eps)
-        super().__setattr__('min', mpmath.ninf)
-        super().__setattr__('max', mpmath.inf)
+        super().__setattr__("eps", mpmath.eps)
+        super().__setattr__("min", mpmath.ninf)
+        super().__setattr__("max", mpmath.inf)
 
 
 def info(dtype):
@@ -63,7 +63,4 @@ def info(dtype):
 
 def interval(dtype):
     dinfo = info(dtype)
-    return Interval(
-        lower_bound=dinfo.min,
-        upper_bound=dinfo.max
-    )
+    return Interval(lower_bound=dinfo.min, upper_bound=dinfo.max)

@@ -18,20 +18,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
+
 from ltitop.arithmetic.errors import UnderflowError
+from ltitop.arithmetic.fixed_point.formats import Q, uQ
+from ltitop.arithmetic.fixed_point.multi_format_arithmetic_logic_unit import (
+    MultiFormatArithmeticLogicUnit,
+)
 from ltitop.arithmetic.interval import interval
 from ltitop.arithmetic.modular import wraparound
 from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.fixed_point.formats import uQ, Q
 
-from ltitop.arithmetic.fixed_point.multi_format_arithmetic_logic_unit \
-    import MultiFormatArithmeticLogicUnit
-
-import pytest
 
 def test_construction_errors():
     with pytest.raises(ValueError):
         MultiFormatArithmeticLogicUnit(wordlength=0)
+
 
 def test_represent_errors():
     alu = MultiFormatArithmeticLogicUnit(
@@ -39,7 +41,7 @@ def test_represent_errors():
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     with pytest.raises(ValueError):
@@ -61,7 +63,7 @@ def test_represent():
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     assert alu.rinfo(signed=True).eps == 0.0078125
@@ -111,13 +113,14 @@ def test_represent():
     assert r.mantissa == interval(-64, 64)
     assert r.format_ == Q(2, 6)
 
+
 def test_add():
     alu = MultiFormatArithmeticLogicUnit(
         wordlength=8,
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     x = alu.represent(1, format_=Q(4, 4))
@@ -150,13 +153,14 @@ def test_add():
     assert z.mantissa == interval(32, 96)
     assert z.format_ == Q(4, 4)
 
+
 def test_multiply():
     alu = MultiFormatArithmeticLogicUnit(
         wordlength=8,
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     x = alu.represent(1, format_=Q(4, 4))

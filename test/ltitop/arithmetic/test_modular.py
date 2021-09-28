@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.modular import wraparound
 from ltitop.arithmetic.interval import interval
+from ltitop.arithmetic.modular import wraparound
 
 
 def test_wraparound():

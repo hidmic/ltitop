@@ -20,12 +20,12 @@
 
 from typing import Any
 
-from ltitop.arithmetic.interval import Interval
 from ltitop.arithmetic.fixed_point.number import Number as FixedPointNumber
-from ltitop.arithmetic.fixed_point.symbol import Fixed as FixedPointSymbol
 from ltitop.arithmetic.fixed_point.processing_unit import ProcessingUnit
+from ltitop.arithmetic.fixed_point.symbol import Fixed as FixedPointSymbol
 from ltitop.arithmetic.floating_point import mpfloat
-from ltitop.arithmetic.rounding import nearest_integer, ceil, floor, truncate
+from ltitop.arithmetic.interval import Interval
+from ltitop.arithmetic.rounding import ceil, floor, nearest_integer, truncate
 from ltitop.common.dataclasses import immutable_dataclass
 
 
@@ -96,19 +96,25 @@ class Number:
         snumber = mpfloat(self.number)
         onumber = mpfloat(other.number)
         result_error_bounds = (
-            (snumber + self.error_bounds) *
-            (onumber + other.error_bounds)
+            (snumber + self.error_bounds) * (onumber + other.error_bounds)
         ).difference(snumber * onumber)
         if isinstance(result, (FixedPointNumber, FixedPointSymbol)):
-            exact = (self.number == -1 or self.number == 1 or self.number == 0 or
-                     other.number == -1 or other.number == 1 or other.number == 0)
+            exact = (
+                self.number == -1
+                or self.number == 1
+                or self.number == 0
+                or other.number == -1
+                or other.number == 1
+                or other.number == 0
+            )
             if not exact:
                 rounding = ProcessingUnit.active().rounding_method
-                if isinstance(self.number, (FixedPointNumber, FixedPointSymbol)) and \
-                   isinstance(other.number, (FixedPointNumber, FixedPointSymbol)):
+                if isinstance(
+                    self.number, (FixedPointNumber, FixedPointSymbol)
+                ) and isinstance(other.number, (FixedPointNumber, FixedPointSymbol)):
                     result_error_bounds += rounding.error_bounds(
                         result.format_.lsb,
-                        self.number.format_.lsb + other.number.format_.lsb
+                        self.number.format_.lsb + other.number.format_.lsb,
                     )
                 else:
                     result_error_bounds += rounding.error_bounds(result.format_.lsb)
@@ -135,7 +141,7 @@ class Number:
         return Number(other) % self
 
     def __apply_rounding_method__(self, method):
-        number = method(self.number)
+        number = method.apply(self.number)
         error_bounds = self.error_bounds
         lsb = None
         if isinstance(self.number, (FixedPointNumber, FixedPointSymbol)):
@@ -186,8 +192,9 @@ class Number:
     def __eq__(self, other):
         if not isinstance(other, Number):
             other = Number(other)
-        return self.number == other.number and \
-            self.error_bounds == other.error_bounds == 0
+        return (
+            self.number == other.number and self.error_bounds == other.error_bounds == 0
+        )
 
     def __ne__(self, other):
         return not (self == other)
@@ -195,8 +202,10 @@ class Number:
     def __lt__(self, other):
         if not isinstance(other, Number):
             other = Number(other)
-        return mpfloat(self.number) + self.error_bounds < \
-            mpfloat(other.number) + other.error_bounds
+        return (
+            mpfloat(self.number) + self.error_bounds
+            < mpfloat(other.number) + other.error_bounds
+        )
 
     def __le__(self, other):
         return self < other or self == other
@@ -208,7 +217,7 @@ class Number:
         return not (self < other)
 
     def __lshift__(self, n):
-        return Number(self.number << n, self.error_bounds * 2**n)
+        return Number(self.number << n, self.error_bounds * 2 ** n)
 
     def __rshift__(self, n):
         # TODO(hidmic): implement

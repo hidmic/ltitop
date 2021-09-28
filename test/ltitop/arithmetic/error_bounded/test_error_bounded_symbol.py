@@ -26,4 +26,3 @@ from ltitop.arithmetic.error_bounded.symbol import ErrorBounded
 
 def test_literal_conversion():
     assert ErrorBounded(0.25) == sympy.sympify(error_bounded(0.25))
-

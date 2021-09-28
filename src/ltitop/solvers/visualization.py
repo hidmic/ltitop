@@ -18,7 +18,5 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d
-
-
+import matplotlib.pyplot as plt  # noqa
+import mpl_toolkits.mplot3d  # noqa

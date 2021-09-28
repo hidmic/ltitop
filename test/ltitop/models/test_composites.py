@@ -18,14 +18,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.models.composites import parallel_composition
-from ltitop.models.composites import series_composition
-from ltitop.models.composites import parallel_decomposition
-from ltitop.models.composites import series_decomposition
-
-import numpy as np
 import scipy.signal as signal
 from numpy.testing import assert_almost_equal
+
+from ltitop.models.composites import (
+    parallel_composition,
+    parallel_decomposition,
+    series_composition,
+    series_decomposition,
+)
+
 
 def test_series_composition():
     head = signal.lti([1], [1, 0.5])
@@ -36,6 +38,7 @@ def test_series_composition():
     _, He = expected_series.freqresp(w=w)
     assert_almost_equal(Hs, He)
 
+
 def test_series_decomposition():
     series = signal.lti([1, 0], [1, 1.5, 1, 0.25])
     head, tail = series_decomposition(series, 2)
@@ -43,6 +46,7 @@ def test_series_decomposition():
     _, He = head.freqresp(w=w)
     _, Ht = tail.freqresp(w=w)
     assert_almost_equal(Hs, He * Ht)
+
 
 def test_parallel_composition():
     left = signal.lti([1], [1, 0.5])
@@ -52,6 +56,7 @@ def test_parallel_composition():
     w, Hp = parallel.freqresp()
     _, He = expected_parallel.freqresp(w=w)
     assert_almost_equal(Hp, He)
+
 
 def test_parallel_decomposition():
     parallel = signal.lti([1], [1, -0.5])

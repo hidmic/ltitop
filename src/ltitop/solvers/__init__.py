@@ -18,6 +18,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import ltitop.solvers.gp as gp
 import ltitop.solvers.anneal as anneal
+import ltitop.solvers.gp as gp
 
+__all__ = [
+    "anneal",
+    "gp",
+]

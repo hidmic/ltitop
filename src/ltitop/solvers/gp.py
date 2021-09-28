@@ -20,54 +20,59 @@
 
 import dataclasses
 import functools
+import hashlib
 import math
 import operator
-import random
-import hashlib
-
-def md5(*items):
-    return hashlib.md5(
-        repr(items).encode()
-    ).hexdigest()[:15]
 
 import deap.algorithms
 import deap.base
 import deap.gp
 import deap.tools
-
 import numpy as np
-import scipy.signal as signal
 
 from ltitop.common.functional import argtransform
 from ltitop.common.helpers import methodcall
-from ltitop.models.composites import parallel_decomposition
-from ltitop.models.composites import series_decomposition
-from ltitop.topology.diagram.construction import as_diagram
-from ltitop.topology.diagram.construction import parallel_diagram
-from ltitop.topology.diagram.construction import series_diagram
+from ltitop.models.composites import parallel_decomposition, series_decomposition
+from ltitop.topology.diagram.construction import (
+    as_diagram,
+    parallel_diagram,
+    series_diagram,
+)
+
+
+def md5(*items):
+    return hashlib.md5(repr(items).encode()).hexdigest()[:15]
 
 
 def _series(*operators, variant, tol):
     def __implementation(model, **kwargs):
-        return series_diagram([
-            operator(submodel) for operator, submodel in zip(
-                operators, series_decomposition(
-                    model, len(operators), variant, tol=tol
+        return series_diagram(
+            [
+                operator(submodel)
+                for operator, submodel in zip(
+                    operators,
+                    series_decomposition(model, len(operators), variant, tol=tol),
                 )
-            )
-        ], **kwargs)
+            ],
+            **kwargs,
+        )
+
     return __implementation
 
 
 def _parallel(*operators, variant, tol):
     def __implementation(model, **kwargs):
-        return parallel_diagram([
-            operator(submodel) for operator, submodel in zip(
-                operators, parallel_decomposition(
-                    model, len(operators), variant, tol=tol
+        return parallel_diagram(
+            [
+                operator(submodel)
+                for operator, submodel in zip(
+                    operators,
+                    parallel_decomposition(model, len(operators), variant, tol=tol),
                 )
-            )
-        ], **kwargs)
+            ],
+            **kwargs,
+        )
+
     return __implementation
 
 
@@ -84,8 +89,7 @@ def _evaluate(code, *, func, model, compiler):
 
 def _graph(code, pset):
     nodes, edges, labels = deap.gp.graph(code)
-    labels = {i: label_for(pset.context[name])
-              for i, name in labels.items()}
+    labels = {i: label_for(pset.context[name]) for i, name in labels.items()}
     return nodes, edges, labels
 
 
@@ -108,87 +112,96 @@ class Code(deap.gp.PrimitiveTree):
 
 
 def formulate(
-    prototype, *, transforms, evaluate, weights,
-    forms, variants, dtype=float, tol=1e-16
+    prototype, *, transforms, evaluate, weights, forms, variants, dtype=float, tol=1e-16
 ):
     pfunc = deap.base.Toolbox()
-    pfunc.register('series', _series)
-    pfunc.register('parallel', _parallel)
-    pfunc.register('realize', argtransform(_realize, *transforms))
+    pfunc.register("series", _series)
+    pfunc.register("parallel", _parallel)
+    pfunc.register("realize", argtransform(_realize, *transforms))
 
-    pset = deap.gp.PrimitiveSet('factory', 0)
+    pset = deap.gp.PrimitiveSet("factory", 0)
     for variant in variants:
         suffix = md5(variant, tol)
         primitive = functools.partial(
-            methodcall(pfunc, 'series'),
-            variant=variant, tol=tol)
-        pset.addPrimitive(primitive, 2, name=f'series{suffix}')
+            methodcall(pfunc, "series"), variant=variant, tol=tol
+        )
+        pset.addPrimitive(primitive, 2, name=f"series{suffix}")
         primitive = functools.partial(
-            methodcall(pfunc, 'parallel'),
-            variant=variant, tol=tol)
-        pset.addPrimitive(primitive, 2, name=f'parallel{suffix}')
+            methodcall(pfunc, "parallel"), variant=variant, tol=tol
+        )
+        pset.addPrimitive(primitive, 2, name=f"parallel{suffix}")
         for form in forms:
             primitive = functools.partial(
-                methodcall(pfunc, 'realize'),
-                form=form, variant=variant, dtype=dtype)
+                methodcall(pfunc, "realize"), form=form, variant=variant, dtype=dtype
+            )
             suffix = md5(form.__name__, variant, dtype.__name__)
-            pset.addTerminal(primitive, name=f'realize{suffix}')
+            pset.addTerminal(primitive, name=f"realize{suffix}")
 
     toolbox = deap.base.Toolbox()
     toolbox.pset = pset
     toolbox.pfunc = pfunc
     order = len(prototype.poles)
     toolbox.register(
-        'code', deap.gp.genHalfAndHalf, pset=pset,
-        min_=1, max_=max(math.ceil(math.log2(order)), 1))
-    toolbox.register(
-        'code_snippet', deap.gp.genFull,
-        pset=pset, min_=0, max_=2)
-    toolbox.register(
-        'individual', lambda: Code(toolbox.code(), weights))
-    toolbox.register(
-        'population', deap.tools.initRepeat, list, toolbox.individual)
-    toolbox.register('compile', deap.gp.compile, pset=pset)
-    toolbox.register(
-        'evaluate', functools.partial(
-            _evaluate,
-            func=evaluate, model=prototype,
-            compiler=toolbox.compile
-        )
+        "code",
+        deap.gp.genHalfAndHalf,
+        pset=pset,
+        min_=1,
+        max_=max(math.ceil(math.log2(order)), 1),
     )
-    toolbox.register('graph', _graph, pset=pset)
+    toolbox.register("code_snippet", deap.gp.genFull, pset=pset, min_=0, max_=2)
+    toolbox.register("individual", lambda: Code(toolbox.code(), weights))
+    toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
+    toolbox.register("compile", deap.gp.compile, pset=pset)
+    toolbox.register(
+        "evaluate",
+        functools.partial(
+            _evaluate, func=evaluate, model=prototype, compiler=toolbox.compile
+        ),
+    )
+    toolbox.register("graph", _graph, pset=pset)
 
     order_limit = deap.gp.staticLimit(
-        key=operator.attrgetter('height'),
-        max_value=math.ceil(math.log2(order)))
-    toolbox.register(
-        'mutate', deap.gp.mutUniform,
-        expr=toolbox.code_snippet, pset=pset)
-    toolbox.decorate('mutate', order_limit)
-    toolbox.register('mate', deap.gp.cxOnePointLeafBiased, termpb=0.1)
-    toolbox.decorate('mate', order_limit)
+        key=operator.attrgetter("height"), max_value=math.ceil(math.log2(order))
+    )
+    toolbox.register("mutate", deap.gp.mutUniform, expr=toolbox.code_snippet, pset=pset)
+    toolbox.decorate("mutate", order_limit)
+    toolbox.register("mate", deap.gp.cxOnePointLeafBiased, termpb=0.1)
+    toolbox.decorate("mate", order_limit)
 
     return toolbox
 
 
 def label_for(value):
-    if hasattr(value, '__name__'):
+    if hasattr(value, "__name__"):
         return value.__name__
     if isinstance(value, functools.partial):
-        return '{}[{}]'.format(label_for(value.func), '; '.join(
-            f'{name} = {label_for(value)}'
-            for name, value in value.keywords.items()
-        ))
+        return "{}[{}]".format(
+            label_for(value.func),
+            "; ".join(
+                f"{name} = {label_for(value)}" for name, value in value.keywords.items()
+            ),
+        )
     if isinstance(value, methodcall):
         return value.method_name
     return str(value)
 
 
-def nsga2(population, toolbox, *, mu=None, lambda_=None,
-          cxpb=0.3, mutpb=0.05, ngen=100, stats=None,
-          halloffame=None, inf=1e200, verbose=__debug__):
+def nsga2(
+    population,
+    toolbox,
+    *,
+    mu=None,
+    lambda_=None,
+    cxpb=0.3,
+    mutpb=0.05,
+    ngen=100,
+    stats=None,
+    halloffame=None,
+    inf=1e200,
+    verbose=__debug__,
+):
     logbook = deap.tools.Logbook()
-    logbook.header = ['gen', 'nevals', 'nunfeas']
+    logbook.header = ["gen", "nevals", "nunfeas"]
     if stats is not None:
         logbook.header += stats.fields
 
@@ -236,7 +249,7 @@ def nsga2(population, toolbox, *, mu=None, lambda_=None,
                 continue
             ind.fitness.values = fit
 
-        population = deap.tools.selNSGA2(population + offspring, mu, nd='log')
+        population = deap.tools.selNSGA2(population + offspring, mu, nd="log")
 
         if halloffame is not None:
             halloffame.update(population)

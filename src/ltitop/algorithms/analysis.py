@@ -20,8 +20,10 @@
 
 import sympy
 
-from ltitop.algorithms.expressions.arithmetic import NonAssociativeAdd
-from ltitop.algorithms.expressions.arithmetic import NonAssociativeMul
+from ltitop.algorithms.expressions.arithmetic import (
+    NonAssociativeAdd,
+    NonAssociativeMul,
+)
 from ltitop.algorithms.statements import Assignment
 
 
@@ -33,17 +35,17 @@ def implementation_hardware(algorithm):
         if isinstance(statement, Assignment):
             expressions = statement.rhs
             if not isinstance(expressions, tuple):
-                expressions = expressions,
+                expressions = (expressions,)
             for expr in expressions:
                 adders = [
-                    atom for atom in expr.atoms(
-                        sympy.Add, NonAssociativeAdd
-                    ) if atom.has(*variables)
+                    atom
+                    for atom in expr.atoms(sympy.Add, NonAssociativeAdd)
+                    if atom.has(*variables)
                 ]
                 multipliers = [
-                    atom for atom in expr.atoms(
-                        sympy.Mul, NonAssociativeMul
-                    ) if atom.has(*variables)
+                    atom
+                    for atom in expr.atoms(sympy.Mul, NonAssociativeMul)
+                    if atom.has(*variables)
                 ]
                 num_adders += len(adders)
                 num_multipliers += len(multipliers)
@@ -51,6 +53,6 @@ def implementation_hardware(algorithm):
     for state in algorithm.states:
         try:
             memory_size += int(sum(state.shape))
-        except:
+        except Exception:
             memory_size += 1
     return num_adders, num_multipliers, memory_size

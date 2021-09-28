@@ -24,37 +24,42 @@ import itertools
 import networkx as nx
 import sympy
 
-from ltitop.topology.realizations import Realization
 
-def _tempnode(diagram, skip=[], suffix='tmp', factory=str):
+def _tempnode(diagram, skip=None, suffix="tmp", factory=str):
     key = suffix, factory
     if key not in diagram.graph:
-        node_generator = (factory(f'{suffix}{i}') for i in itertools.count())
-        unique_node_generator = \
-            (node for node in node_generator if node not in diagram.nodes)
+        node_generator = (factory(f"{suffix}{i}") for i in itertools.count())
+        unique_node_generator = (
+            node for node in node_generator if node not in diagram.nodes
+        )
         diagram.graph[key] = unique_node_generator
+    skip = skip or []
     return next(node for node in diagram.graph[key] if node not in skip)
 
-tempvar = functools.partial(_tempnode, suffix='var', factory=sympy.Symbol)
+
+tempvar = functools.partial(_tempnode, suffix="var", factory=sympy.Symbol)
+
 
 def add_subdiagram(diagram, input_, output, subdiagram):
     mapping = {}
 
     variables = set(subdiagram.nodes)
 
-    if subdiagram.graph['input'] != input_:
-        mapping[subdiagram.graph['input']] = input_
-    variables.remove(subdiagram.graph['input'])
+    if subdiagram.graph["input"] != input_:
+        mapping[subdiagram.graph["input"]] = input_
+    variables.remove(subdiagram.graph["input"])
 
-    if subdiagram.graph['output'] != output:
-        mapping[subdiagram.graph['output']] = output
-    variables.remove(subdiagram.graph['output'])
+    if subdiagram.graph["output"] != output:
+        mapping[subdiagram.graph["output"]] = output
+    variables.remove(subdiagram.graph["output"])
 
-    mapping.update({
-        variable: tempvar(diagram, skip=subdiagram)
-        for variable in variables
-        if variable in diagram
-    })
+    mapping.update(
+        {
+            variable: tempvar(diagram, skip=subdiagram)
+            for variable in variables
+            if variable in diagram
+        }
+    )
 
     if mapping:
         subdiagram = nx.relabel_nodes(subdiagram, mapping)
@@ -67,21 +72,24 @@ def add_subdiagram(diagram, input_, output, subdiagram):
 def input_of(block):
     if not isinstance(block, nx.MultiDiGraph):
         return None
-    return block.graph['input']
+    return block.graph["input"]
+
 
 def output_of(block):
     if not isinstance(block, nx.MultiDiGraph):
         return None
-    return block.graph['output']
+    return block.graph["output"]
+
 
 def _unique(var, at):
     if var in at.nodes:
         return None
     return var
 
+
 def as_diagram(block, input_=None, output=None, **data):
     if input_ and input_ == output:
-        raise ValueError(f'{input_} used as input and output')
+        raise ValueError(f"{input_} used as input and output")
     if isinstance(block, nx.MultiDiGraph):
         if not input_ and not output:
             return block
@@ -94,43 +102,43 @@ def as_diagram(block, input_=None, output=None, **data):
         input_ = input_ or tempvar(diagram)
         output = output or tempvar(diagram)
         diagram.add_edge(input_, output, block=block, **data)
-    diagram.graph['input'] = input_
-    diagram.graph['output'] = output
+    diagram.graph["input"] = input_
+    diagram.graph["output"] = output
     return diagram
+
 
 def series_diagram(blocks, input_=None, output=None, simplify=True):
     if input_ and input_ == output:
-        raise ValueError(f'{input_} used as input and output')
+        raise ValueError(f"{input_} used as input and output")
     nonredundant_blocks = []
     for block in blocks:
         if isinstance(block, nx.MultiDiGraph):
             if block.size() > 1:
                 nonredundant_blocks.append(block)
                 continue
-            _, _, block = next(iter(block.edges(data='block')))
+            _, _, block = next(iter(block.edges(data="block")))
         model = block.model.to_zpk()
         if simplify:
-            if model.gain == 0.:
+            if model.gain == 0.0:
                 return as_diagram(block, input_=input_, output=output)
-            if model.gain == 1. and len(model.poles) == 0 and len(model.zeros) == 0:
+            if model.gain == 1.0 and len(model.poles) == 0 and len(model.zeros) == 0:
                 continue
         nonredundant_blocks.append(block)
     if not nonredundant_blocks:
         return as_diagram(blocks[0], input_=input_, output=output)
     diagram = nx.MultiDiGraph()
-    diagram.add_node(
-        input_ or
-        input_of(nonredundant_blocks[0]) or
-        tempvar(diagram))
+    diagram.add_node(input_ or input_of(nonredundant_blocks[0]) or tempvar(diagram))
     for i in range(1, len(nonredundant_blocks)):
         diagram.add_node(
-            _unique(output_of(nonredundant_blocks[i - 1]), at=diagram) or
-            _unique(input_of(nonredundant_blocks[i]), at=diagram) or
-            tempvar(diagram))
+            _unique(output_of(nonredundant_blocks[i - 1]), at=diagram)
+            or _unique(input_of(nonredundant_blocks[i]), at=diagram)
+            or tempvar(diagram)
+        )
     diagram.add_node(
-        _unique(output, at=diagram) or
-        _unique(output_of(nonredundant_blocks[-1]), at=diagram) or
-        tempvar(diagram))
+        _unique(output, at=diagram)
+        or _unique(output_of(nonredundant_blocks[-1]), at=diagram)
+        or tempvar(diagram)
+    )
     variables = list(diagram.nodes)
     if output and output is not variables[-1]:
         idx = variables.index(output)
@@ -141,45 +149,59 @@ def series_diagram(blocks, input_=None, output=None, simplify=True):
             add_subdiagram(diagram, u, v, block)
         else:
             diagram.add_edge(u, v, block=block)
-    diagram.graph['input'] = variables[0]
-    diagram.graph['output'] = variables[-1]
+    diagram.graph["input"] = variables[0]
+    diagram.graph["output"] = variables[-1]
     return diagram
 
 
 def parallel_diagram(blocks, input_=None, output=None, simplify=True):
     if input_ and input_ == output:
-        raise ValueError(f'{input_} used as input and output')
+        raise ValueError(f"{input_} used as input and output")
     nonredundant_blocks = []
     for block in blocks:
         if isinstance(block, nx.MultiDiGraph):
             if block.size() > 1:
                 nonredundant_blocks.append(block)
                 continue
-            _, _, block = next(iter(block.edges(data='block')))
+            _, _, block = next(iter(block.edges(data="block")))
         model = block.model.to_zpk()
-        if simplify and model.gain == 0.:
+        if simplify and model.gain == 0.0:
             continue
         nonredundant_blocks.append(block)
     if not nonredundant_blocks:
         return as_diagram(blocks[0], input_=input_, output=output)
     diagram = nx.MultiDiGraph()
     inputs = (input_of(block) for block in nonredundant_blocks)
-    input_ = input_ or next((
-        variable for variable in inputs
-        if variable is not None and
-        variable not in diagram
-    ), None) or tempvar(diagram)
+    input_ = (
+        input_
+        or next(
+            (
+                variable
+                for variable in inputs
+                if variable is not None and variable not in diagram
+            ),
+            None,
+        )
+        or tempvar(diagram)
+    )
     outputs = (output_of(block) for block in nonredundant_blocks)
-    output = output or next((
-        variable for variable in outputs
-        if variable is not None and
-        variable not in diagram
-    ), None) or tempvar(diagram)
+    output = (
+        output
+        or next(
+            (
+                variable
+                for variable in outputs
+                if variable is not None and variable not in diagram
+            ),
+            None,
+        )
+        or tempvar(diagram)
+    )
     for block in nonredundant_blocks:
         if isinstance(block, nx.MultiDiGraph):
             add_subdiagram(diagram, input_, output, block)
         else:
             diagram.add_edge(input_, output, block=block)
-    diagram.graph['input'] = input_
-    diagram.graph['output'] = output
+    diagram.graph["input"] = input_
+    diagram.graph["output"] = output
     return diagram

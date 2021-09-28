@@ -19,22 +19,18 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import functools
+
 import mpmath
-import numpy as np
 
 from ltitop.arithmetic.errors import UnderflowError
-from ltitop.arithmetic.interval import interval
+from ltitop.arithmetic.fixed_point.arithmetic_logic_unit import ArithmeticLogicUnit
 from ltitop.arithmetic.fixed_point.formats import Format
 from ltitop.arithmetic.fixed_point.representation import Representation
-
-from ltitop.arithmetic.fixed_point.arithmetic_logic_unit import ArithmeticLogicUnit
-from ltitop.arithmetic.floating_point import mpmsb
-
-from ltitop.common.memoization import memoize
+from ltitop.arithmetic.floating_point import mpfloat
+from ltitop.arithmetic.rounding import ceil, floor, nearest_integer, truncate
 
 
 class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
-
     class internals:
         @staticmethod
         def operation_method(method):
@@ -42,29 +38,30 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             def __wrapper(self, head, *tail):
                 if __debug__:
                     if head.format_.wordlength > self.wordlength:
-                        raise ValueError(f'{self} cannot handle {head}')
+                        raise ValueError(f"{self} cannot handle {head}")
                     signed = head.format_.signed
                     for op in tail:
                         if op.format_.wordlength > self.wordlength:
-                            raise ValueError(f'{self} cannot handle {op}')
+                            raise ValueError(f"{self} cannot handle {op}")
                         if signed != op.format_.signed:
-                            raise ValueError(f'{self} cannot handle mixed signs')
+                            raise ValueError(f"{self} cannot handle mixed signs")
                 return method(self, head, *tail)
+
             return __wrapper
 
-    @functools.lru_cache(maxsize=128)
+    @functools.lru_cache
     def represent(self, value, rtype=Representation, format_=None):
         if format_ is not None:
             if format_.wordlength > self.wordlength:
-                raise ValueError(f'{format_} wordlength is too large')
+                raise ValueError(f"{format_} wordlength is too large")
             mantissa, (underflow, overflow) = format_.represent(
                 value, rounding_method=self.rounding_method
             )
             if underflow and not self.represent.allows_underflow:
-                raise UnderflowError(f'{value} in {format_} underflows')
+                raise UnderflowError(f"{value} in {format_} underflows")
             if overflow:
                 if not self.represent.allows_overflow:
-                    raise OverflowError(f'{value} in {format_} overflows')
+                    raise OverflowError(f"{value} in {format_} overflows")
                 mantissa, _ = self.overflow_behavior(
                     mantissa, range_=format_.mantissa_interval
                 )
@@ -75,7 +72,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             mantissa, format_ = Format.best(value, wordlength=self.wordlength)
         return rtype(mantissa, format_)
 
-    @memoize
+    @functools.lru_cache
     def rinfo(self, *, signed=True):
         if signed:
             epsilon = mpmath.ldexp(1, -self.wordlength + 1)
@@ -108,7 +105,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             value, rounding_method=self.rounding_method
         )
         if underflow and not allows_underflow:
-            raise UnderflowError(f'{value} underflows in {format_}')
+            raise UnderflowError(f"{value} underflows in {format_}")
         assert not overflow
         return mantissa
 
@@ -121,7 +118,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             format_ = Format(msb, lsb, signed)
             mantissa, (underflow, overflow) = format_.represent(
                 Representation(mantissa, extended_format),
-                rounding_method=self.rounding_method
+                rounding_method=self.rounding_method,
             )
             assert not underflow
             assert not overflow
@@ -135,13 +132,16 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
     def add(self, x, y):
         format_z = self._find_common_format(x.format_, y.format_)
         mantissa_x = self._align_operand_mantissa(
-            x, format_z, allows_underflow=self.add.allows_underflow)
+            x, format_z, allows_underflow=self.add.allows_underflow
+        )
         mantissa_y = self._align_operand_mantissa(
-            y, format_z, allows_underflow=self.add.allows_underflow)
+            y, format_z, allows_underflow=self.add.allows_underflow
+        )
         mantissa_z = mantissa_x + mantissa_y
         if format_z.overflows_with(mantissa_z):
             mantissa_z, format_z = self._handle_overflow(
-                self.add, mantissa_z, format_z, off_by=1)
+                self.add, mantissa_z, format_z, off_by=1
+            )
         return type(x)(mantissa_z, format_z)
 
     @internals.operation_method
@@ -149,15 +149,18 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         # Use 1x wordlength adders with carry
         format_z = self._find_common_format(x.format_, y.format_)
         mantissa_x, underflow = self._align_operand_mantissa(
-            x, format_z, allows_underflow=self.substract.allows_underflow)
+            x, format_z, allows_underflow=self.substract.allows_underflow
+        )
         mantissa_y, underflow = self._align_operand_mantissa(
-            y, format_z, allows_underflow=self.substract.allows_underflow)
+            y, format_z, allows_underflow=self.substract.allows_underflow
+        )
         mantissa_z = mantissa_x - mantissa_y
         if format_z.overflows_with(mantissa_z):
             if not self.substract.allows_overflow and not format_z.signed:
-                raise OverflowError(f'Cannot prevent unsigned overflow')
+                raise OverflowError("Cannot prevent unsigned overflow")
             mantissa_z, format_z = self._handle_overflow(
-                self.substract, mantissa_z, format_z, off_by=1)
+                self.substract, mantissa_z, format_z, off_by=1
+            )
         return type(x)(mantissa_z, format_z)
 
     @internals.operation_method
@@ -173,7 +176,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
                 Representation(mantissa_z, format_z),
                 wordlength=self.wordlength,
                 rounding_method=self.rounding_method,
-                signed=signed
+                signed=signed,
             )
         return type(x)(mantissa_z, format_z)
 
@@ -195,7 +198,8 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         mantissa, (_, overflow) = format_.represent(floor(mpfloat(x)))
         if overflow:
             mantissa, format_ = self._handle_overflow(
-                self.floor, mantissa, format_, off_by=1)
+                self.floor, mantissa, format_, off_by=1
+            )
         return type(x)(mantissa, format_)
 
     @internals.operation_method
@@ -206,7 +210,8 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         mantissa, (_, overflow) = format_.represent(ceil(mpfloat(x)))
         if overflow:
             mantissa, format_ = self._handle_overflow(
-                self.ceil, mantissa, format_, off_by=1)
+                self.ceil, mantissa, format_, off_by=1
+            )
         return type(x)(mantissa, format_)
 
     @internals.operation_method
@@ -217,54 +222,60 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
         mantissa, (_, overflow) = format_.represent(nearest_integer(mpfloat(x)))
         if overflow:
             mantissa, format_ = self._handle_overflow(
-                self.nearest, mantissa, format_, off_by=1)
+                self.nearest, mantissa, format_, off_by=1
+            )
         return type(x)(mantissa, format_)
 
     @internals.operation_method
     def negate(self, x):
         if not x.format_.signed:
-            raise ValueError(f'Cannot negate unsigned representation {x}')
+            raise ValueError(f"Cannot negate unsigned representation {x}")
         if x.mantissa == 0:
             return x
         format_ = x.format_
         mantissa = -x.mantissa
         if format_.overflows_with(mantissa):
             mantissa, format_ = self._handle_overflow(
-                self.negate, mantissa, format_, off_by=1)
+                self.negate, mantissa, format_, off_by=1
+            )
         return type(x)(mantissa, format_)
 
     @internals.operation_method
     def compare(self, x, y):
         format_ = self._find_common_format(x.format_, y.format_)
         mantissa_x = self._align_operand_mantissa(
-            x, format_, allows_underflow=self.compare.allows_underflow)
+            x, format_, allows_underflow=self.compare.allows_underflow
+        )
         mantissa_y = self._align_operand_mantissa(
-            y, format_, allows_underflow=self.compare.allows_underflow)
+            y, format_, allows_underflow=self.compare.allows_underflow
+        )
         return mantissa_x - mantissa_y
 
     def lshift(self, x, n):
         if x.format_.wordlength > self.wordlength:
-            raise ValueError(f'{self} cannot handle {x}')
+            raise ValueError(f"{self} cannot handle {x}")
         if n < 0:
-            raise ValueError(f'negative shift count {n}')
+            raise ValueError(f"negative shift count {n}")
         n = int(n)
-        return type(x)(x.mantissa, Format(
-            msb=x.format_.msb + n,
-            lsb=x.format_.lsb + n,
-            signed=x.format_.signed
-        ))
+        return type(x)(
+            x.mantissa,
+            Format(
+                msb=x.format_.msb + n, lsb=x.format_.lsb + n, signed=x.format_.signed
+            ),
+        )
 
     def rshift(self, x, n):
         if x.format_.wordlength > self.wordlength:
-            raise ValueError(f'{self} cannot handle {x}')
+            raise ValueError(f"{self} cannot handle {x}")
         if n < 0:
-            raise ValueError(f'negative shift count {n}')
+            raise ValueError(f"negative shift count {n}")
         n = int(n)
-        return type(x)(x.mantissa, Format(
-            msb=x.format_.msb - n,
-            lsb=x.format_.lsb - n,
-            signed=x.format_.signed
-        ))
+        return type(x)(
+            x.mantissa,
+            Format(
+                msb=x.format_.msb - n, lsb=x.format_.lsb - n, signed=x.format_.signed
+            ),
+        )
 
     def __str__(self):
-        return f'{self.wordlength} bits multi-format ALU'
+        return f"{self.wordlength} bits multi-format ALU"

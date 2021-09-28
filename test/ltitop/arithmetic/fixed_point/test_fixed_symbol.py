@@ -19,27 +19,29 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import math
+
 import sympy
-from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.fixed_point.formats import uQ, Q
+
 from ltitop.arithmetic.fixed_point import fixed
+from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit import (
+    FixedFormatArithmeticLogicUnit,
+)
+from ltitop.arithmetic.fixed_point.formats import Q
 from ltitop.arithmetic.fixed_point.symbol import Fixed
-from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit \
-    import FixedFormatArithmeticLogicUnit
+from ltitop.arithmetic.rounding import nearest_integer
+
 
 def test_literal_conversion():
-    with FixedFormatArithmeticLogicUnit(
-        format_=Q(7), rounding_method=nearest_integer
-    ) as alu:
+    with FixedFormatArithmeticLogicUnit(format_=Q(7), rounding_method=nearest_integer):
         assert Fixed(0.25) == sympy.sympify(fixed(0.25))
+
 
 def test_symbolic_expression():
     with FixedFormatArithmeticLogicUnit(
-        format_=Q(7), allows_overflow=False,
-        rounding_method=nearest_integer
+        format_=Q(7), allows_overflow=False, rounding_method=nearest_integer
     ) as alu:
-        x, y, z, w = sympy.symbols('x y z w')
+        x, y, z, w = sympy.symbols("x y z w")
         expr = ((x + 0.5 * y) * z) - w
         subs = {x: fixed(0.25), y: fixed(0.1), z: 0.25, w: 0.5}
         result = expr.subs(subs)
-        assert math.isclose(result, -0.425, abs_tol=2**alu.format_.lsb)
+        assert math.isclose(result, -0.425, abs_tol=2 ** alu.format_.lsb)

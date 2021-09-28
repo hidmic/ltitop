@@ -18,22 +18,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import typing
+import functools
 
 import numpy as np
-import scipy.signal as signal
 
 from ltitop.algorithms import Algorithm
 from ltitop.arithmetic.error_bounded import error_bounded
 from ltitop.arithmetic.fixed_point import fixed
 from ltitop.arithmetic.fixed_point.processing_unit import ProcessingUnit
-from ltitop.arithmetic.floating_point import mpfloat
 from ltitop.arithmetic.interval import interval
-from ltitop.common.arrays import empty_of
-from ltitop.common.dataclasses import Dataclass
-from ltitop.common.dataclasses import immutable_dataclass
-from ltitop.common.memoization import memoize
-from ltitop.models.analysis import output_range
+from ltitop.common.dataclasses import Dataclass, immutable_dataclass
 
 
 @immutable_dataclass
@@ -46,15 +40,15 @@ class Realization:
         raise NotImplementedError()
 
     @classmethod
-    @memoize
+    @functools.lru_cache
     def make_algorithm(cls, *, modifiers=None, **kwargs):
         algorithm = cls._make_algorithm(**kwargs)
         if modifiers:
             algorithm = algorithm.apply(modifiers)
         return algorithm
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def update_function(self):
         return self.algorithm.to_function(tuple(self.parameters))
 
@@ -64,45 +58,44 @@ class Realization:
         outputs = [None] * len(inputs)
         update = self.update_function
         for k in range(len(inputs)):
-            states[k + 1], outputs[k] = \
-                update(inputs[k], states[k])
+            states[k + 1], outputs[k] = update(inputs[k], states[k])
         return states, outputs
 
     def to_function(self, initial_state):
-        return (lambda inputs: self.process(inputs, initial_state)[1])
+        return lambda inputs: self.process(inputs, initial_state)[1]
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def inputs(self):
         inputs = []
         for input_ in self.algorithm.inputs:
             try:
                 shape = tuple(int(n) for n in input_.shape)
-            except:
+            except Exception:
                 shape = ()
             inputs.append(shape)
         return tuple(inputs)
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def states(self):
         states = []
         for state in self.algorithm.states:
             try:
                 shape = tuple(int(n) for n in state.shape)
-            except:
+            except Exception:
                 shape = ()
             states.append(shape)
         return tuple(states)
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def outputs(self):
         outputs = []
         for output in self.algorithm.outputs:
             try:
                 shape = tuple(int(n) for n in output.shape)
-            except:
+            except Exception:
                 shape = ()
             outputs.append(shape)
         return tuple(outputs)
@@ -114,26 +107,26 @@ class Realization:
     def _make_model(self):
         raise NotImplementedError()
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def model(self):
         return self._make_model()
 
     def _make_state_observer_models(self):
         raise NotImplementedError()
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def state_observer_models(self):
         if len(self.states) == 0:
-            raise RuntimeError('No states to observe')
+            raise RuntimeError("No states to observe")
         return self._make_state_observer_models()
 
     def _make_computation_error_model(self):
         raise NotImplementedError()
 
-    @property
-    @memoize
+    @property  # type: ignore
+    @functools.lru_cache
     def computation_error_model(self):
         return self._make_computation_error_model()
 
@@ -142,7 +135,7 @@ class Realization:
         domain = self.algorithm.define(
             inputs=tuple(error_bounded(fixed(r)) for r in input_ranges),
             states=tuple(error_bounded(fixed(r)) for r in state_ranges),
-            parameters=tuple(self.parameters)
+            parameters=tuple(self.parameters),
         )
         error_bounds = []
         unit = ProcessingUnit.active()
@@ -154,8 +147,7 @@ class Realization:
                     if any(func is not compare for func, *_ in trace):
                         for value in change.values():
                             if isinstance(value, tuple):
-                                error_bounds.extend(
-                                    elem.error_bounds for elem in value)
+                                error_bounds.extend(elem.error_bounds for elem in value)
                             else:
                                 error_bounds.append(value.error_bounds)
                     trace.clear()
@@ -167,5 +159,5 @@ class Realization:
             return error_bounds[0]
         return interval(
             lower_bound=np.c_[[eb.lower_bound for eb in error_bounds]],
-            upper_bound=np.c_[[eb.upper_bound for eb in error_bounds]]
+            upper_bound=np.c_[[eb.upper_bound for eb in error_bounds]],
         )

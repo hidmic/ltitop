@@ -27,6 +27,7 @@ def probably(func):
         return args
     return __wrapper
 
+
 @probably
 def expand_one_block(diagram):
     u, v, k = edge = random.choice(diagram.edges(keys=True))
@@ -42,6 +43,7 @@ def expand_one_block(diagram):
         diagram.add_edge(u, v, block=left_block)
         diagram.add_edge(u, v, block=right_block)
     return diagram,
+
 
 @probably
 def collapse_one_variable(diagram):
@@ -67,6 +69,7 @@ def collapse_one_variable(diagram):
         diagram.add_edge(predecessor, successor, block=block)
     return diagram,
 
+
 @probably
 def rebalance_algorithms(diagram):
     for edge in diagram.edges(keys=True):
@@ -75,6 +78,7 @@ def rebalance_algorithms(diagram):
         block = dataclasses.replace(block, algorithm=algorithm)
         diagram.edges[edge]['block'] = block
     return diagram,
+
 
 @probably
 def multipoint_algorithm_swap(diagram1, diagram2):
@@ -103,6 +107,7 @@ def multipoint_algorithm_swap(diagram1, diagram2):
         diagram1.edges[edge]['block'] = block1
         diagram2.edges[edge]['block'] = block2
     return diagram1, diagram2
+
 
 def optimize(model, implement, evaluate):
     toolbox = deap.base.Toolbox()

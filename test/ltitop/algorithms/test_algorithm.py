@@ -18,29 +18,30 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
 import sympy
 
 from ltitop.algorithms import Algorithm
 from ltitop.algorithms.statements import Assignment
 
-import pytest
 
 @pytest.fixture
 def cma_algo():
-    x, n, cma = sympy.symbols('x n cma')
+    x, n, cma = sympy.symbols("x n cma")
 
     return Algorithm(
         inputs=x,
         states=(n, cma),
         procedure=[
             Assignment(lhs=cma, rhs=(x + n * cma) / (n + 1)),
-            Assignment(lhs=n, rhs=n + 1)
-        ]
+            Assignment(lhs=n, rhs=n + 1),
+        ],
     )
 
+
 def test_algorithm_execution(cma_algo):
-    (n, cma), _ = cma_algo.collect(cma_algo.run(
-        cma_algo.define(inputs=10, states=(1, 0))
-    ))
+    (n, cma), _ = cma_algo.collect(
+        cma_algo.run(cma_algo.define(inputs=10, states=(1, 0)))
+    )
     assert n == 2
     assert cma == 5

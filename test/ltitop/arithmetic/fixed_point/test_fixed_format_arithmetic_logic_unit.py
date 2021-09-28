@@ -18,17 +18,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-from ltitop.arithmetic.errors import OverflowError
-from ltitop.arithmetic.errors import UnderflowError
+import pytest
+
+from ltitop.arithmetic.errors import OverflowError, UnderflowError
+from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit import (
+    FixedFormatArithmeticLogicUnit,
+)
+from ltitop.arithmetic.fixed_point.formats import Q
 from ltitop.arithmetic.interval import interval
 from ltitop.arithmetic.modular import wraparound
 from ltitop.arithmetic.rounding import nearest_integer
-from ltitop.arithmetic.fixed_point.formats import uQ, Q
 
-from ltitop.arithmetic.fixed_point.fixed_format_arithmetic_logic_unit \
-    import FixedFormatArithmeticLogicUnit
-
-import pytest
 
 def test_represent_errors():
     alu = FixedFormatArithmeticLogicUnit(
@@ -36,7 +36,7 @@ def test_represent_errors():
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     with pytest.raises(UnderflowError):
@@ -45,13 +45,14 @@ def test_represent_errors():
     with pytest.raises(OverflowError):
         alu.represent(10)
 
+
 def test_represent():
     alu = FixedFormatArithmeticLogicUnit(
         format_=Q(7),
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
     assert alu.rinfo().eps == 0.0078125
     assert alu.rinfo().min == -1
@@ -88,7 +89,7 @@ def test_add():
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=True,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     x = alu.represent(1)
@@ -124,13 +125,14 @@ def test_add():
     assert z.mantissa == interval(-128, 127)
     assert z.format_ == alu.format_
 
+
 def test_multiply():
     alu = FixedFormatArithmeticLogicUnit(
         format_=Q(7),
         rounding_method=nearest_integer,
         overflow_behavior=wraparound,
         allows_overflow=False,
-        allows_underflow=False
+        allows_underflow=False,
     )
 
     x = alu.represent(0.5)

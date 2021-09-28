@@ -19,16 +19,16 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import scipy.signal as signal
+from numpy.testing import assert_almost_equal
 
 from ltitop.arithmetic.interval import interval
-
-from ltitop.models.analysis import is_stable
-from ltitop.models.analysis import spectral_radius
-from ltitop.models.analysis import dc_gain
-from ltitop.models.analysis import worst_case_peak_gain
-from ltitop.models.analysis import output_range
-
-from numpy.testing import assert_almost_equal
+from ltitop.models.analysis import (
+    dc_gain,
+    is_stable,
+    output_range,
+    spectral_radius,
+    worst_case_peak_gain,
+)
 
 
 def test_model_stability():
@@ -39,12 +39,15 @@ def test_model_stability():
     assert is_stable(model)
     assert_almost_equal(spectral_radius(model), 0.5)
 
+
 def test_model_dc_gain():
     assert dc_gain(signal.dlti([0.75, 0], [1, -0.5])) == 1.5
 
+
 def test_model_worst_case_peak_gain():
     assert worst_case_peak_gain(signal.dlti([0.75, 0], [1, -0.5])) == 1.5
-    assert worst_case_peak_gain(signal.dlti([0.75, -0.75], [1, 0.])) == 1.5
+    assert worst_case_peak_gain(signal.dlti([0.75, -0.75], [1, 0.0])) == 1.5
+
 
 def test_model_output_range():
     model = signal.dlti([0.75, 0], [1, -0.5])

@@ -19,21 +19,18 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import reduce
-from itertools import chain
-from itertools import repeat
+from itertools import chain, repeat
+
 import numpy as np
-import scipy.signal as signal
 
 from ltitop.common.arrays import simple_if_possible
 
 
 def from_roots(r, m=None):
     if m is not None:
-        r = list(chain(*(
-            repeat(ri, mi)
-            for ri, mi in zip(r, m)
-        )))
+        r = list(chain(*(repeat(ri, mi) for ri, mi in zip(r, m))))
     return np.poly(r)
+
 
 def simplify(poly, tol=1e-16):
     poly = np.asarray(poly)
@@ -43,28 +40,34 @@ def simplify(poly, tol=1e-16):
     poly[close_to_zero] = 0
     if np.count_nonzero(poly) == 0:
         return poly[0:1]
-    return np.trim_zeros(poly, trim='f')
+    return np.trim_zeros(poly, trim="f")
+
 
 add = np.polyadd
 
+
 def summation(polys):
     return reduce(add, polys)
+
 
 multiply = np.polymul
 
 divide = np.polydiv
 
+
 def product(polys):
     return reduce(multiply, polys)
 
+
 evaluate = np.polyval
 
-def real_polynomial_roots_if_close(roots, tol=1e-16, rtype='avg'):
-    if rtype in ['max', 'maximum']:
+
+def real_polynomial_roots_if_close(roots, tol=1e-16, rtype="avg"):
+    if rtype in ["max", "maximum"]:
         align = np.max
-    elif rtype in ['min', 'minimum']:
+    elif rtype in ["min", "minimum"]:
         align = np.min
-    elif rtype in ['avg', 'mean']:
+    elif rtype in ["avg", "mean"]:
         align = np.mean
     else:
         raise ValueError(
@@ -79,21 +82,21 @@ def real_polynomial_roots_if_close(roots, tol=1e-16, rtype='avg'):
         r[i] = simple_if_possible(r[i], tol)
         if not np.isreal(r[i]):
             if not indices:
-                raise ValueError(
-                    f'No complex conjugate pole for {r[i]}')
+                raise ValueError(f"No complex conjugate pole for {r[i]}")
             ri_star = np.conj(r[i])
             deviations = np.abs(r[indices] - ri_star)
-            smallest_deviations = \
-                np.ma.masked_greater(deviations, tol, copy=False)
+            smallest_deviations = np.ma.masked_greater(deviations, tol, copy=False)
             if smallest_deviations.count() == 0:
                 closest_root = r[indices[np.argmin(deviations)]]
                 raise ValueError(
-                    f'No complex conjugate root for {r[i]},'
-                    f' closest root to conjugate is {closest_root}')
+                    f"No complex conjugate root for {r[i]},"
+                    f" closest root to conjugate is {closest_root}"
+                )
             j = indices.pop(np.argmin(smallest_deviations))
             r[j] = align([ri_star, r[j]])
             r[i] = np.conj(r[j])
     return r
+
 
 def real_polynomial_factorization_roots(roots, tol=1e-16):
     factors = []
@@ -106,18 +109,18 @@ def real_polynomial_factorization_roots(roots, tol=1e-16):
             r_star = np.conj(r)
             if r_star not in roots:
                 roots = np.asarray(roots)
-                closest = roots[np.argmin(
-                    np.abs(roots - r_star))]
+                closest = roots[np.argmin(np.abs(roots - r_star))]
                 raise ValueError(
-                    f'No complex conjugate root for {r},'
-                    f' closest root to conjugate is {closest}')
+                    f"No complex conjugate root for {r},"
+                    f" closest root to conjugate is {closest}"
+                )
             factors.append((r, r_star))
             roots.remove(r_star)
         else:
             factors.append((r,))
     return factors
 
+
 def real_polynomial_factorization(poly, tol=1e-16):
-    factor_roots = \
-        real_polynomial_factorization_roots(np.roots(poly), tol=tol)
+    factor_roots = real_polynomial_factorization_roots(np.roots(poly), tol=tol)
     return poly[0], list(map(from_roots, factor_roots))

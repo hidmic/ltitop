@@ -18,14 +18,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 from typing import Union
+
+import numpy as np
 from numpy.typing import ArrayLike
 
 from ltitop.arithmetic.fixed_point.formats import Format
 from ltitop.arithmetic.floating_point import mpfloat
 from ltitop.arithmetic.interval import Interval
-
 from ltitop.common.dataclasses import immutable_dataclass
 
 
@@ -37,8 +37,9 @@ class Representation:
     def __post_init__(self):
         if __debug__:
             if np.any(self.mantissa not in self.format_.mantissa_interval):
-                raise ValueError(f'{self.astype(float)} cannot be '
-                                 f'represented in {self.format_}')
+                raise ValueError(
+                    f"{self.astype(float)} cannot be " f"represented in {self.format_}"
+                )
 
     @property
     def is_integer(self):
@@ -49,7 +50,7 @@ class Representation:
             mantissa = self.mantissa.astype(dtype)
         except (AttributeError, TypeError):
             mantissa = dtype(self.mantissa)
-        return mantissa * 2**self.format_.lsb
+        return mantissa * 2 ** self.format_.lsb
 
     def __float__(self):
         return self.astype(float)
@@ -78,6 +79,6 @@ class Representation:
 
     def __hash__(self):
         mantissa = self.mantissa
-        if hasattr(mantissa, 'tobytes'):
+        if hasattr(mantissa, "tobytes"):
             mantissa = mantissa.tobytes()
         return hash((mantissa, self.format_))

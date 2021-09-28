@@ -19,10 +19,9 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 def annotated_function(func=None, /, **annotations):
     class _wrapper:
-        __slots__ = ('__func', '__annotations')
+        __slots__ = ("__func", "__annotations")
 
         def __init__(self, func):
             self.__func = func
@@ -41,7 +40,7 @@ def annotated_function(func=None, /, **annotations):
             annotations.extend(kwargs.items())
             for name, value in annotations:
                 if name in self.__annotations:
-                    raise ValueError(f'{name} already present')
+                    raise ValueError(f"{name} already present")
                 self.__annotations[name] = value
 
     if func is None:

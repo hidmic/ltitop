@@ -18,24 +18,21 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import sympy
 import sys
 
 import scipy.signal.ltisys as ltisys
+import sympy
 
 
 def pretty(model):
     if isinstance(model, ltisys.TransferFunction):
         if model.dt is None:  # continuous time
-            s = sympy.Symbol('s')
-            num = sum(c*s**i for i, c in enumerate(reversed(model.num)))
-            den = sum(c*s**i for i, c in enumerate(reversed(model.den)))
+            s = sympy.Symbol("s")
+            num = sum(c * s ** i for i, c in enumerate(reversed(model.num)))
+            den = sum(c * s ** i for i, c in enumerate(reversed(model.den)))
         else:  # discrete time
-            z = sympy.Symbol('z')
-            num = sum(c*z**i for i, c in enumerate(reversed(model.num)))
-            den = sum(c*z**i for i, c in enumerate(reversed(model.den)))
-        return sympy.pretty(
-            num / den, use_unicode=True,
-            num_columns=sys.maxsize
-        )
-    raise TypeError(f'Unknown model type')
+            z = sympy.Symbol("z")
+            num = sum(c * z ** i for i, c in enumerate(reversed(model.num)))
+            den = sum(c * z ** i for i, c in enumerate(reversed(model.den)))
+        return sympy.pretty(num / den, use_unicode=True, num_columns=sys.maxsize)
+    raise TypeError("Unknown model type")

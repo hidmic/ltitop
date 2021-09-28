@@ -22,14 +22,11 @@ import numpy as np
 
 from ltitop.arithmetic.fixed_point.processing_unit import ProcessingUnit
 from ltitop.arithmetic.fixed_point.representation import Representation
-
 from ltitop.common.dataclasses import immutable_dataclass
-from ltitop.common.helpers import type_uniform_binary_operator
 
 
 @immutable_dataclass
 class Number(Representation):
-
     @classmethod
     def from_value(cls, *args, **kwargs):
         unit = ProcessingUnit.active()

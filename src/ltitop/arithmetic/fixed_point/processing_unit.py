@@ -20,16 +20,14 @@
 
 import mpmath
 
-from ltitop.common.tracing import Traceable
-from ltitop.arithmetic.rounding import floor
 from ltitop.arithmetic.modular import wraparound
-
+from ltitop.arithmetic.rounding import floor
 from ltitop.common.annotation import annotated_function
 from ltitop.common.dataclasses import immutable_dataclass
+from ltitop.common.tracing import Traceable
 
 
 class ProcessingUnit(metaclass=Traceable):
-
     @immutable_dataclass
     class Info:
         eps: mpmath.mpf
@@ -41,7 +39,7 @@ class ProcessingUnit(metaclass=Traceable):
     @classmethod
     def active(cls):
         if ProcessingUnit.__active is None:
-            raise RuntimeError('No active fixed point process unit')
+            raise RuntimeError("No active fixed point process unit")
         return ProcessingUnit.__active
 
     def __enter__(self):
@@ -61,7 +59,8 @@ class ProcessingUnit(metaclass=Traceable):
         allows_underflow=True,
         **kwargs
     ):
-        super().__init__(**kwargs); cls = type(self)
+        super().__init__(**kwargs)
+        cls = type(self)
         self.__rounding_method = rounding_method
         self.__overflow_behavior = overflow_behavior
 
@@ -75,42 +74,50 @@ class ProcessingUnit(metaclass=Traceable):
         elif allows_underflow is False:
             allows_underflow = []
 
-        self.represent = annotated_function(self.represent,
+        self.represent = annotated_function(
+            self.represent,
             allows_overflow=cls.represent in allows_overflow,
             allows_underflow=cls.represent in allows_underflow,
         )
-        self.add = annotated_function(self.add,
+        self.add = annotated_function(
+            self.add,
             allows_overflow=cls.add in allows_overflow,
-            allows_underflow=cls.add in allows_underflow
+            allows_underflow=cls.add in allows_underflow,
         )
-        self.substract = annotated_function(self.substract,
+        self.substract = annotated_function(
+            self.substract,
             allows_overflow=cls.substract in allows_overflow,
-            allows_underflow=cls.substract in allows_underflow
+            allows_underflow=cls.substract in allows_underflow,
         )
-        self.multiply = annotated_function(self.multiply,
+        self.multiply = annotated_function(
+            self.multiply,
             allows_overflow=cls.multiply in allows_overflow,
             allows_underflow=cls.multiply in allows_underflow,
         )
-        self.divide = annotated_function(self.divide,
+        self.divide = annotated_function(
+            self.divide,
             allows_overflow=cls.divide in allows_overflow,
             allows_underflow=cls.divide in allows_underflow,
         )
-        self.modulus = annotated_function(self.modulus,
+        self.modulus = annotated_function(
+            self.modulus,
             allows_overflow=cls.modulus in allows_overflow,
             allows_underflow=cls.modulus in allows_underflow,
         )
-        self.lshift = annotated_function(self.lshift,
+        self.lshift = annotated_function(
+            self.lshift,
             allows_overflow=cls.rshift in allows_overflow,
         )
-        self.negate = annotated_function(self.negate,
+        self.negate = annotated_function(
+            self.negate,
             allows_overflow=(
-                cls.negate in allows_overflow or
-                cls.substract in allows_overflow or
-                cls.multiply in allows_overflow
-            )
+                cls.negate in allows_overflow
+                or cls.substract in allows_overflow
+                or cls.multiply in allows_overflow
+            ),
         )
-        self.compare = annotated_function(self.compare,
-            allows_underflow=cls.compare in allows_underflow
+        self.compare = annotated_function(
+            self.compare, allows_underflow=cls.compare in allows_underflow
         )
 
     @property

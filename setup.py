@@ -19,66 +19,63 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import splitext
+from os.path import basename, splitext
 
-from setuptools import find_packages
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
-    name='ltitop',
-    version='0.1.1',
-    license='LGPL',
-    description='',
-    long_description='',
-    author='Michel Hidalgo',
-    author_email='hid.michel@gmail.com',
-    url='https://github.com/hidmic/ltitop',
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    name="ltitop",
+    version="0.1.1",
+    license="LGPL",
+    description="",
+    long_description="",
+    author="Michel Hidalgo",
+    author_email="hid.michel@gmail.com",
+    url="https://github.com/hidmic/ltitop",
+    packages=find_packages("src"),
+    package_dir={"": "src"},
+    py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Operating System :: Unix',
-        'Operating System :: POSIX',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)',
-        'Topic :: Scientific/Engineering :: Mathematics',
-        'Topic :: Software Development :: Embedded Systems',
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: Unix",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Software Development :: Embedded Systems",
     ],
     project_urls={
-        'Changelog': 'https://github.com/hidmic/ltitop/blob/master/CHANGELOG.rst',
-        'Issue Tracker': 'https://github.com/hidmic/ltitop/issues',
+        "Changelog": "https://github.com/hidmic/ltitop/blob/master/CHANGELOG.rst",
+        "Issue Tracker": "https://github.com/hidmic/ltitop/issues",
     },
     keywords=[
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
-    python_requires='>=3,',
+    python_requires=">=3,",
     install_requires=[
-        'autograd',
-        'deap @ git+https://github.com/hidmic/deap@feature/py38',
-        'matplotlib',
-        'mpmath',
-        'networkx',
-        'numpy',
-        'scipy @ git+https://github.com/hidmic/scipy.git@bugfix/cont2discrete',
-        'simanneal',
-        'sympy',
-        'pygraphviz',
+        "autograd",
+        "deap @ git+https://github.com/hidmic/deap@feature/py38",
+        "matplotlib",
+        "mpmath",
+        "networkx",
+        "numpy",
+        "scipy @ git+https://github.com/hidmic/scipy.git@bugfix/cont2discrete",
+        "simanneal",
+        "sympy",
+        "pygraphviz",
     ],
     extras_require={
         # eg:
@@ -86,6 +83,6 @@ setup(
         #   ':python_version=="2.6"': ['argparse'],
     },
     setup_requires=[
-        'pytest-runner',
+        "pytest-runner",
     ],
 )

@@ -19,21 +19,17 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+
 from ltitop.arithmetic.interval import Interval
-from ltitop.arithmetic.saturated import saturate
 from ltitop.common.arrays import vectorize
 
 
-@vectorize(excluded=['range_'])
+@vectorize(excluded=["range_"])
 def wraparound(value, range_):
     if isinstance(value, Interval):
         # TODO(hidmic): use modulo interval arithmetic?
-        lower_bound, lower_overflow = wraparound(
-            value.lower_bound, range_=range_
-        )
-        upper_bound, upper_overflow = wraparound(
-            value.upper_bound, range_=range_
-        )
+        lower_bound, lower_overflow = wraparound(value.lower_bound, range_=range_)
+        upper_bound, upper_overflow = wraparound(value.upper_bound, range_=range_)
         overflow = np.logical_or(lower_overflow, upper_overflow)
         if not np.isscalar(overflow):
             if np.any(overflow):

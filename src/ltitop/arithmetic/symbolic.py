@@ -18,13 +18,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
-import mpmath
+import math
 
+import mpmath
 from sympy.core.basic import Basic
-from sympy.core.decorators import _sympifyit
-from sympy.core.decorators import call_highest_priority
-from sympy.core.expr import AtomicExpr
-from sympy.core.expr import Expr
+from sympy.core.decorators import _sympifyit, call_highest_priority
+from sympy.core.expr import AtomicExpr, Expr
 from sympy.core.function import Function
 from sympy.core.numbers import Number
 from sympy.core.parameters import global_parameters
@@ -38,7 +37,7 @@ class BaseNumber(AtomicExpr):
 
     is_number = True
     # NOTE(hidmic): a hack to force higher precedence
-    is_Rational = True   # sympy is a bit rough in here
+    is_Rational = True  # sympy is a bit rough in here
     is_Number = True
     is_comparable = True
 
@@ -93,8 +92,8 @@ class BaseNumber(AtomicExpr):
     def __getitem__(self, key):
         return type(self)(self._args[0][key])
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__radd__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__radd__")
     def __add__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.Zero:
@@ -104,8 +103,8 @@ class BaseNumber(AtomicExpr):
             return self._new(self._args[0] + other._args[0])
         return super().__add__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__add__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__add__")
     def __radd__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.Zero:
@@ -115,8 +114,8 @@ class BaseNumber(AtomicExpr):
             return self._new(other._args[0] + self._args[0])
         return super().__radd__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rsub__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__rsub__")
     def __sub__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.Zero:
@@ -126,8 +125,8 @@ class BaseNumber(AtomicExpr):
             return self._new(self._args[0] - other._args[0])
         return super().__sub__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__sub__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__sub__")
     def __rsub__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.Zero:
@@ -140,8 +139,8 @@ class BaseNumber(AtomicExpr):
     def __neg__(self):
         return self._new(-self._args[0])
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rmul__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__rmul__")
     def __mul__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.One:
@@ -153,8 +152,8 @@ class BaseNumber(AtomicExpr):
             return self._new(self._args[0] * other._args[0])
         return super().__mul__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__mul__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__mul__")
     def __rmul__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.One:
@@ -166,8 +165,8 @@ class BaseNumber(AtomicExpr):
             return self._new(self._args[0] * other._args[0])
         return super().__mul__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rdiv__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__rdiv__")
     def __div__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.One:
@@ -181,8 +180,8 @@ class BaseNumber(AtomicExpr):
 
     __truediv__ = __div__
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__div__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__div__")
     def __rdiv__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if not isinstance(other, type(self)):
@@ -190,8 +189,8 @@ class BaseNumber(AtomicExpr):
             return self._new(other._args[0] / self._args[0])
         return super().__rdiv__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rmod__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__rmod__")
     def __mod__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if other == S.One:
@@ -201,8 +200,8 @@ class BaseNumber(AtomicExpr):
             return self._new(self._args[0] % other._args[0])
         return super().__mod__(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__mod__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__mod__")
     def __rmod__(self, other):
         if isinstance(other, (BaseNumber, Number)) and global_parameters.evaluate:
             if not isinstance(other, type(self)):
@@ -213,8 +212,8 @@ class BaseNumber(AtomicExpr):
     def __hash__(self):
         return super().__hash__()
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__eq__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__eq__")
     def __eq__(self, other):
         if not other.is_Number:
             return False
@@ -229,8 +228,8 @@ class BaseNumber(AtomicExpr):
     def __ne__(self, other):
         return not (self == other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__lt__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__lt__")
     def __lt__(self, other):
         if not other.is_Number:
             return super().__lt__(other)
@@ -242,8 +241,8 @@ class BaseNumber(AtomicExpr):
             return self._args[0] < other
         return self._args[0] < mpfloat(other)
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__le__')
+    @_sympifyit("other", NotImplemented)
+    @call_highest_priority("__le__")
     def __le__(self, other):
         if not other.is_Number:
             return super().__le__(other)
@@ -269,12 +268,10 @@ class BaseNumber(AtomicExpr):
 
 
 class ldexp(Function):
-
     @classmethod
     def eval(cls, x, k):
-        if isinstance(x, (BaseNumber, Number)) and \
-           isinstance(k, (BaseNumber, Number)):
+        if isinstance(x, (BaseNumber, Number)) and isinstance(k, (BaseNumber, Number)):
             try:
                 return x << k if k > 0 else x >> -k
             except TypeError:
-                return x * 2**k
+                return x * 2 ** k

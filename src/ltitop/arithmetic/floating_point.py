@@ -24,6 +24,7 @@ import numpy as np
 from ltitop.arithmetic.interval import Interval
 from ltitop.common.arrays import vectorize
 
+
 @vectorize
 def mpfloat(value):
     try:
@@ -31,30 +32,34 @@ def mpfloat(value):
     except (AttributeError, TypeError):
         return mpmath.mpmathify(value)
 
-@vectorize(excluded=['signed'])
+
+@vectorize(excluded=["signed"])
 def mpmsb(value, signed):
     if isinstance(value, Interval):
-        return np.max([mpmsb(value.lower_bound, signed=signed),
-                       mpmsb(value.upper_bound, signed=signed)])
+        return np.max(
+            [
+                mpmsb(value.lower_bound, signed=signed),
+                mpmsb(value.upper_bound, signed=signed),
+            ]
+        )
     if value > 0:
         return int(mpmath.floor(mpmath.log(value, 2))) + int(signed)
     if value < 0:
         return int(mpmath.ceil(mpmath.log(-value, 2)))
     return -np.inf
 
-@vectorize(excluded=['nbits', 'rounding_method'])
+
+@vectorize(excluded=["nbits", "rounding_method"])
 def mpquantize(value, nbits, rounding_method):
     if isinstance(value, Interval):
         return Interval(
             lower_bound=mpquantize(
-                value.lower_bound, nbits=nbits,
-                rounding_method=rounding_method
+                value.lower_bound, nbits=nbits, rounding_method=rounding_method
             ),
             upper_bound=mpquantize(
-                value.upper_bound, nbits=nbits,
-                rounding_method=rounding_method
-            )
+                value.upper_bound, nbits=nbits, rounding_method=rounding_method
+            ),
         )
     if not mpmath.isfinite(value):
-        raise ValueError(f'Cannot quantize non-finite value: {value}')
-    return int(rounding_method(mpmath.ldexp(value, int(nbits))))
+        raise ValueError(f"Cannot quantize non-finite value: {value}")
+    return int(rounding_method.apply(mpmath.ldexp(value, int(nbits))))
