@@ -24,6 +24,8 @@ import itertools
 import networkx as nx
 import sympy
 
+from ltitop.models.transforms import to_zpk
+
 
 def _tempnode(diagram, skip=None, suffix="tmp", factory=str):
     key = suffix, factory
@@ -117,7 +119,7 @@ def series_diagram(blocks, input_=None, output=None, simplify=True):
                 nonredundant_blocks.append(block)
                 continue
             _, _, block = next(iter(block.edges(data="block")))
-        model = block.model.to_zpk()
+        model = to_zpk(block.model)
         if simplify:
             if model.gain == 0.0:
                 return as_diagram(block, input_=input_, output=output)
@@ -164,7 +166,7 @@ def parallel_diagram(blocks, input_=None, output=None, simplify=True):
                 nonredundant_blocks.append(block)
                 continue
             _, _, block = next(iter(block.edges(data="block")))
-        model = block.model.to_zpk()
+        model = to_zpk(block.model)
         if simplify and model.gain == 0.0:
             continue
         nonredundant_blocks.append(block)
