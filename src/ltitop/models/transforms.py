@@ -40,3 +40,23 @@ def discretize(model, dt):
     model = model._as_zpk()
     z, p, k = signal.bilinear_zpk(model.zeros, model.poles, model.gain, 1 / dt)
     return signal.ltisys.ZerosPolesGainDiscrete(z, p, k, dt=dt)
+
+
+def to_tf(model):
+    if isinstance(model, signal.ZerosPolesGain):
+        if not model.gain:
+            type_ = signal.lti
+            if isinstance(model, signal.dlti):
+                type_ = signal.dlti
+            return type_([model.gain], [model.gain + 1.0])
+    return model.to_tf()
+
+
+def to_zpk(model):
+    if isinstance(model, signal.TransferFunction):
+        if not model.num[0]:
+            type_ = signal.lti
+            if isinstance(model, signal.dlti):
+                type_ = signal.dlti
+            return type_([], [], model.num[0])
+    return model.to_zpk()

@@ -24,6 +24,7 @@ import multiprocessing
 import pickle
 import random
 import sys
+import warnings
 
 import deap.algorithms
 import deap.gp
@@ -56,6 +57,8 @@ from ltitop.topology.diagram.analysis import (
 from ltitop.topology.diagram.construction import series_diagram
 from ltitop.topology.diagram.visualization import pretty
 from ltitop.topology.realizations.direct_forms import DirectFormI, DirectFormII
+
+warnings.filterwarnings("ignore", category=signal.BadCoefficients)
 
 np.set_printoptions(linewidth=1000)
 

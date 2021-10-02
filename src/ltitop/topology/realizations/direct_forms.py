@@ -35,6 +35,7 @@ from ltitop.common.arrays import asvector_if_possible, within
 from ltitop.common.dataclasses import immutable_dataclass
 from ltitop.common.helpers import identity
 from ltitop.models.analysis import output_range
+from ltitop.models.transforms import to_tf
 from ltitop.topology.realizations import Realization
 
 
@@ -122,7 +123,7 @@ class DirectForm(Realization):
     def from_model(cls, model, dtype=None, **kwargs):
         if not isinstance(model, signal.dlti):
             model = signal.dlti(*model)
-        model = model.to_tf()
+        model = to_tf(model)
         if len(model.num.shape) > 1:
             raise NotImplementedError("MISO and MIMO systems not supported")
         num = model.num
