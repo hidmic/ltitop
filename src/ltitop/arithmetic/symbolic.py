@@ -267,7 +267,7 @@ class BaseNumber(AtomicExpr):
         return self._new(self._args[0] >> n)
 
 
-class ldexp(Function):
+class LoadExponent(Function):
     @classmethod
     def eval(cls, x, k):
         if isinstance(x, (BaseNumber, Number)) and isinstance(k, (BaseNumber, Number)):

@@ -71,12 +71,13 @@ class Algorithm:
                 local_variables = [v for v in variables if expression.has(v)]
                 local_constants = [c for c in constants if expression.has(c)]
                 import ltitop.algorithms.expressions.arithmetic as arithmetic
+                import ltitop.arithmetic.symbolic as symbolic
 
                 func = functools.partial(
                     sympy.lambdify(
                         local_constants + arguments + local_variables,
                         expression,
-                        modules=[arithmetic, "numpy"],
+                        modules=[symbolic, arithmetic, "numpy"],
                     ),
                     *[constants[c] for c in local_constants],
                 )
