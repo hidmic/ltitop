@@ -30,7 +30,7 @@ from ltitop.algorithms import Algorithm
 from ltitop.algorithms.statements import Assignment
 from ltitop.arithmetic.floating_point import mpfloat
 from ltitop.arithmetic.interval import interval
-from ltitop.arithmetic.symbolic import ldexp
+from ltitop.arithmetic.symbolic import LoadExponent
 from ltitop.common.arrays import asvector_if_possible, within
 from ltitop.common.dataclasses import immutable_dataclass
 from ltitop.common.helpers import identity
@@ -240,7 +240,7 @@ class DirectFormI(DirectForm):
             parameters = b, a, k
 
             def f(_):
-                return ldexp(_, k)
+                return LoadExponent(_, k)
 
         else:
             parameters = b, a
@@ -331,7 +331,7 @@ class DirectFormII(DirectForm):
             parameters = b, a, k
 
             def f(_):
-                return ldexp(_, k)
+                return LoadExponent(_, k)
 
         else:
             parameters = b, a
@@ -423,7 +423,7 @@ class TransposedDirectFormII(DirectForm):
             parameters = b, a, k
 
             def f(_):
-                return ldexp(_, k)
+                return LoadExponent(_, k)
 
         else:
             parameters = b, a
