@@ -146,12 +146,12 @@ class Format:
             )
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def wordlength(self):
         return self.msb - self.lsb + int(self.signed)
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def mantissa_interval(self):
         if self.signed:
             return interval(
@@ -164,7 +164,7 @@ class Format:
         return bool(np.any(mantissa not in self.mantissa_interval))
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def value_interval(self):
         with mpmath.workprec(self.wordlength + 1):  # wl bits is enough
             if self.signed:
@@ -175,7 +175,7 @@ class Format:
             return interval(0, mpmath.ldexp(1, self.msb) - mpmath.ldexp(1, self.lsb))
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def value_epsilon(self):
         return mpmath.ldexp(1, self.lsb)
 

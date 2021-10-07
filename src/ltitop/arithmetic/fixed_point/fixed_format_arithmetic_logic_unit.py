@@ -77,7 +77,7 @@ class FixedFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             )
         return rtype(mantissa, self.format_)
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def rinfo(self):
         return FixedFormatArithmeticLogicUnit.Info(
             eps=self.format_.value_epsilon,
