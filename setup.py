@@ -64,7 +64,7 @@ setup(
     keywords=[
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
-    python_requires=">=3,",
+    python_requires=">=3.7",
     install_requires=[
         "autograd",
         "deap @ git+https://github.com/hidmic/deap@py3",
@@ -76,6 +76,7 @@ setup(
         "simanneal",
         "sympy",
         "pygraphviz",
+        "typing_extensions",
     ],
     extras_require={
         # eg:

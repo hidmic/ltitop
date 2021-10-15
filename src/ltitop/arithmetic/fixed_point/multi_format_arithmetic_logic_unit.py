@@ -49,7 +49,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
 
             return __wrapper
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def represent(self, value, rtype=Representation, format_=None):
         if format_ is not None:
             if format_.wordlength > self.wordlength:
@@ -72,7 +72,7 @@ class MultiFormatArithmeticLogicUnit(ArithmeticLogicUnit):
             mantissa, format_ = Format.best(value, wordlength=self.wordlength)
         return rtype(mantissa, format_)
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def rinfo(self, *, signed=True):
         if signed:
             epsilon = mpmath.ldexp(1, -self.wordlength + 1)

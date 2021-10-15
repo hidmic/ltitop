@@ -19,7 +19,7 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 
-def annotated_function(func=None, /, **annotations):
+def annotated_function(func=None, **annotations):
     class _wrapper:
         __slots__ = ("__func", "__annotations")
 

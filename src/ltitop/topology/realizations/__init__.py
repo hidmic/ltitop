@@ -40,7 +40,7 @@ class Realization:
         raise NotImplementedError()
 
     @classmethod
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def make_algorithm(cls, *, modifiers=None, **kwargs):
         algorithm = cls._make_algorithm(**kwargs)
         if modifiers:
@@ -48,7 +48,7 @@ class Realization:
         return algorithm
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def update_function(self):
         return self.algorithm.to_function(tuple(self.parameters))
 
@@ -65,7 +65,7 @@ class Realization:
         return lambda inputs: self.process(inputs, initial_state)[1]
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def inputs(self):
         inputs = []
         for input_ in self.algorithm.inputs:
@@ -77,7 +77,7 @@ class Realization:
         return tuple(inputs)
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def states(self):
         states = []
         for state in self.algorithm.states:
@@ -89,7 +89,7 @@ class Realization:
         return tuple(states)
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def outputs(self):
         outputs = []
         for output in self.algorithm.outputs:
@@ -108,7 +108,7 @@ class Realization:
         raise NotImplementedError()
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def model(self):
         return self._make_model()
 
@@ -116,7 +116,7 @@ class Realization:
         raise NotImplementedError()
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def state_observer_models(self):
         if len(self.states) == 0:
             raise RuntimeError("No states to observe")
@@ -126,7 +126,7 @@ class Realization:
         raise NotImplementedError()
 
     @property  # type: ignore
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128)
     def computation_error_model(self):
         return self._make_computation_error_model()
 

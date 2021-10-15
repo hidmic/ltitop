@@ -19,14 +19,18 @@
 # along with ltitop.  If not, see <http://www.gnu.org/licenses/>.
 
 import dataclasses
-import typing
+from typing import *  # noqa
+from typing import TYPE_CHECKING, Dict
+
+if not TYPE_CHECKING:
+    from typing_extensions import Protocol
 
 
-class Dataclass(typing.Protocol):
-    __dataclass_fields__: typing.Dict
+class Dataclass(Protocol):
+    __dataclass_fields__: Dict
 
 
-def immutable_dataclass(cls=None, /, iterable=False, **kwargs):
+def immutable_dataclass(cls=None, iterable=False, **kwargs):
     def _decorate(cls):
         cls = dataclasses.dataclass(cls, frozen=True, **kwargs)
         cls_dict = dict(cls.__dict__)
